@@ -1,0 +1,29 @@
+[project]
+name = "aya-tabular-research"
+version = "0.3.0"
+description = "Aba tabular mcp server"
+authors = [
+    {name = "Maksim Baluev",email = "maxbaluev@outlook.com"}
+]
+readme = "README.md"
+requires-python = ">=3.10,<=3.13"
+dependencies = [
+    "pydantic (>=2.0.0,<3.0.0)",
+    "pyperclip (>=1.9.0,<2.0.0)",
+    "pandas (>=2.2.3,<3.0.0)",
+    "pyarrow (>=19.0.0,<20.0.0)",
+    "jsonschema (>=4.23.0,<5.0.0)",
+    "numpy (>=2.0.0,<3.0.0)",
+    "mcp[cli]>=1.6.0",
+]
+
+[build-system]
+requires = [ "hatchling",]
+build-backend = "hatchling.build"
+
+[project.scripts]
+aya-tabular-research = "aya_tabular_research:main"
+
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/aya-tabular-research"]
