@@ -1,9 +1,26 @@
+import logging
 from pathlib import Path
+
+# Set up logging for this module
+logger = logging.getLogger(__name__)
+logger.debug(f"artifact_manager.py loaded. __file__ = {__file__}")
 
 # Define the base directory for artifacts relative to the project root
 # Assuming the project root is the parent of the 'src' directory
-PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
+# Calculate PROJECT_ROOT with intermediate logging
+resolved_path = Path(__file__).resolve()
+logger.debug(f"Resolved path: {resolved_path}")
+p1 = resolved_path.parent
+logger.debug(f"Parent 1: {p1}")
+p2 = p1.parent
+logger.debug(f"Parent 2: {p2}")
+p3 = p2.parent
+logger.debug(f"Parent 3: {p3}")
+PROJECT_ROOT = p3.parent  # Parent 4
+logger.debug(f"Calculated PROJECT_ROOT: {PROJECT_ROOT}")
+
 ARTIFACTS_BASE_DIR = PROJECT_ROOT / "artifacts"
+logger.debug(f"Calculated ARTIFACTS_BASE_DIR: {ARTIFACTS_BASE_DIR}")
 
 
 def get_artifact_path(*subdirs: str, filename: str = None) -> Path:

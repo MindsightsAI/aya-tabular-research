@@ -154,6 +154,9 @@ class TabularStore(DataStore):
 
             entity_series = pd.Series(valid_attributes)
 
+            logger.debug(
+                f"[{operation}] Preparing for entity '{entity_id}'. Attributes: {valid_attributes}. Series created: {entity_series.to_dict() if not entity_series.empty else 'Empty Series'}"
+            )
             if entity_id in self._df.index:
                 logger.debug(
                     f"Updating entity: {entity_id} with attributes: {list(valid_attributes.keys())}"
@@ -163,6 +166,9 @@ class TabularStore(DataStore):
                     if (
                         col in self._df.columns
                     ):  # Ensure column exists before assignment
+                        logger.debug(
+                            f"[{operation}] Updating '{entity_id}': Setting column '{col}' to value '{value}' (type: {type(value)})"
+                        )
                         self._df.loc[entity_id, col] = value
                     else:
                         logger.warning(
@@ -178,6 +184,9 @@ class TabularStore(DataStore):
                 new_row_df = new_row_df.set_index(self._identifier_column, drop=False)
                 # Reindex to ensure column order and presence matches the main DataFrame
                 new_row_df = new_row_df.reindex(columns=self._df.columns)
+                logger.debug(
+                    f"[{operation}] Adding '{entity_id}': Preparing to concat new row. Attributes: {valid_attributes}. New row DataFrame details:\n{new_row_df.to_string()}"
+                )
                 self._df = pd.concat([self._df, new_row_df], ignore_index=False)
 
         except Exception as e:

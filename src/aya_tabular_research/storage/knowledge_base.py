@@ -464,6 +464,43 @@ class TabularKnowledgeBase(KnowledgeBase):
                 f"Failed to get full dataset: {e}", operation_data=op_data
             ) from e
 
+    def get_data_preview(self, num_rows: int = 10) -> pd.DataFrame:
+        """Retrieves a preview (first N rows) of the full dataset."""
+        logger.debug(
+            f"Entering TabularKnowledgeBase.get_data_preview (num_rows={num_rows})"
+        )
+        self._raise_if_not_ready("get_data_preview")
+        try:
+            # Reuse get_full_dataset to ensure consistency and error handling
+            full_df = self.get_full_dataset()
+            logger.debug(
+                f"get_full_dataset returned shape: {full_df.shape if not full_df.empty else 'N/A'}"
+            )
+
+            if full_df.empty:
+                logger.debug(
+                    "Full dataset is empty, returning empty DataFrame for preview."
+                )
+                return full_df  # Return the empty DataFrame directly
+
+            preview_df = full_df.head(num_rows)
+            logger.debug(f"Preview DataFrame created with shape: {preview_df.shape}")
+            return preview_df
+        except KBInteractionError:
+            # Error already logged by get_full_dataset, just re-raise
+            raise
+        except Exception as e:
+            logger.error(
+                f"Unexpected error generating data preview (num_rows={num_rows}): {e}",
+                exc_info=True,
+            )
+            op_data = OperationalErrorData(
+                component="KnowledgeBase", operation="get_data_preview", details=str(e)
+            )
+            raise KBInteractionError(
+                f"Failed to get data preview: {e}", operation_data=op_data
+            ) from e
+
     def get_knowledge_summary(self) -> Dict[str, Any]:
         """Gets the data summary from the DataStore."""
         self._raise_if_not_ready("get_knowledge_summary")

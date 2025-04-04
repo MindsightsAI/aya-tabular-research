@@ -105,7 +105,7 @@ class StateManager:
         self._active_instruction = None
         self._active_instruction_start_time = None
 
-    def _get_tools_for_state(self, status: OverallStatus) -> List[str]:
+    def get_tools_for_state(self, status: OverallStatus) -> List[str]:
         """Returns the list of tool names available for a given status."""
         mapping = {
             OverallStatus.AWAITING_TASK_DEFINITION: ["research/define_task"],
