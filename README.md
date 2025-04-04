@@ -115,7 +115,7 @@ AYA's structured approach can be applied to various complex questions:
     - Node.js/npm/npx (optional, for MCP Inspector)
 2.  **Clone the repository:**
     ```bash
-    git clone https://github.com/boundaryml/aya.git # Replace with actual URL if different
+    git clone git@github.com:MindsightsAI/aya-tabular-research.git
     cd aya
     ```
 3.  **Create and activate a Python virtual environment:**

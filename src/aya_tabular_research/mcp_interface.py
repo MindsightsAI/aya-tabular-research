@@ -196,7 +196,7 @@ def register_mcp_handlers(mcp_server: FastMCP):
                 await state_manager.complete_research()
                 next_directive = InstructionObjectV3(
                     research_goal_context=task_def.task_description,
-                    inquiry_focus="Research Complete",
+                    inquiry_focus="Research Complete, you should export or preview results.",
                     allowed_tools=[
                         "research/preview_results",
                         "research/export_results",
@@ -346,6 +346,28 @@ def register_mcp_handlers(mcp_server: FastMCP):
                     result_status = (
                         research_models.RequestDirectiveResultStatus.RESEARCH_COMPLETE
                     )
+                    # Ensure task_def is available (already checked earlier)
+                    if not task_def:
+                        # This should ideally not happen due to earlier checks, but good practice
+                        op_data = OperationalErrorData(
+                            component="MCPInterface",
+                            operation=operation,
+                            details="TaskDefinition missing unexpectedly during completion.",
+                        )
+                        raise AYAServerError(
+                            "Internal error: TaskDefinition missing during completion.",
+                            data=op_data,
+                        )
+
+                    next_directive_payload = InstructionObjectV3(
+                        research_goal_context=task_def.task_description,
+                        inquiry_focus="Research Complete. Please export or preview the results.",
+                        allowed_tools=[
+                            "research/preview_results",
+                            "research/export_results",
+                        ],
+                        directive_type="COMPLETION",
+                    )
                 elif strategic_decision == "DISCOVER":
                     discovery_payload = planner._plan_discovery()
                     planner_signal = ("DISCOVERY", discovery_payload)
@@ -403,6 +425,28 @@ def register_mcp_handlers(mcp_server: FastMCP):
                     result_status = (
                         research_models.RequestDirectiveResultStatus.RESEARCH_COMPLETE
                     )
+                    # Ensure task_def is available (already checked earlier)
+                    if not task_def:
+                        # This should ideally not happen due to earlier checks, but good practice
+                        op_data = OperationalErrorData(
+                            component="MCPInterface",
+                            operation=operation,
+                            details="TaskDefinition missing unexpectedly during completion.",
+                        )
+                        raise AYAServerError(
+                            "Internal error: TaskDefinition missing during completion.",
+                            data=op_data,
+                        )
+
+                    next_directive_payload = InstructionObjectV3(
+                        research_goal_context=task_def.task_description,
+                        inquiry_focus="Research Complete. Please export or preview the results.",
+                        allowed_tools=[
+                            "research/preview_results",
+                            "research/export_results",
+                        ],
+                        directive_type="COMPLETION",
+                    )
                 else:
                     planner_signal = planner_signal_tuple
             else:
@@ -451,7 +495,9 @@ def register_mcp_handlers(mcp_server: FastMCP):
                 result_status
                 == research_models.RequestDirectiveResultStatus.RESEARCH_COMPLETE
             ):
-                summary_text = "Research Complete."
+                summary_text = (
+                    "Research Complete. Results available for preview or export."
+                )
             elif (
                 result_status
                 == research_models.RequestDirectiveResultStatus.CLARIFICATION_NEEDED
@@ -511,11 +557,19 @@ def register_mcp_handlers(mcp_server: FastMCP):
                 )
 
             # Process clarification (e.g., update KB, inform Planner)
-            planner.incorporate_clarification(args.clarification)
-            await state_manager.clarification_received(args.clarification)
-            logger.info(
-                f"Clarification received and processed. New status: {state_manager.status.value}"
-            )
+            logger.debug(f"Processing clarification: '{args.clarification}'")
+            try:
+                planner.incorporate_clarification(args.clarification)
+                logger.debug("Planner incorporate_clarification completed.")
+                await state_manager.clarification_received(args.clarification)
+                logger.info(
+                    f"Clarification received and processed by StateManager. New status: {state_manager.status.value}"
+                )
+            except Exception as clar_err:
+                logger.error(
+                    f"Error during clarification processing: {clar_err}", exc_info=True
+                )
+                raise  # Re-raise to be handled by main handler
 
             # Plan next directive after clarification
             logger.debug("Planning next directive after clarification.")
@@ -536,13 +590,21 @@ def register_mcp_handlers(mcp_server: FastMCP):
                     "Server state inconsistent: TaskDefinition missing.", data=op_data
                 )
 
+            logger.debug("Calling planner.determine_next_directive()")
             planner_signal_tuple = planner.determine_next_directive()
+            logger.debug(
+                f"Planner determine_next_directive returned: {planner_signal_tuple}"
+            )
 
             if planner_signal_tuple == "CLARIFICATION_NEEDED":
                 # If planner *still* needs clarification, something is wrong or the user input wasn't sufficient
                 # For now, re-request clarification with more context
                 clarification_reason = "Further clarification needed after user input."
+                logger.warning(
+                    f"Planner still needs clarification: {clarification_reason}"
+                )
                 await state_manager.request_clarification(clarification_reason)
+                logger.debug("StateManager request_clarification completed.")
                 result_status = (
                     research_models.RequestDirectiveResultStatus.CLARIFICATION_NEEDED
                 )
@@ -558,16 +620,40 @@ def register_mcp_handlers(mcp_server: FastMCP):
                 )
 
             elif planner_signal_tuple is None:
+                logger.info(
+                    "Planner indicated research is complete after clarification."
+                )
                 await state_manager.complete_research()
+                logger.debug("StateManager complete_research completed.")
                 result_status = (
                     research_models.RequestDirectiveResultStatus.RESEARCH_COMPLETE
                 )
             else:
                 planner_signal = planner_signal_tuple
-                next_directive_payload = directive_builder.build_directive(
-                    planner_signal, task_def
-                )
-                await state_manager.directive_issued(next_directive_payload)
+                logger.debug(f"Building directive for planner signal: {planner_signal}")
+                try:
+                    next_directive_payload = directive_builder.build_directive(
+                        planner_signal, task_def
+                    )
+                    logger.debug(
+                        f"Directive built: ID={getattr(next_directive_payload, 'instruction_id', getattr(next_directive_payload, 'directive_id', 'N/A'))}"
+                    )
+                except Exception as build_err:
+                    logger.error(
+                        f"Error building directive: {build_err}", exc_info=True
+                    )
+                    raise  # Re-raise
+
+                try:
+                    await state_manager.directive_issued(next_directive_payload)
+                    logger.debug("StateManager directive_issued completed.")
+                except Exception as state_err:
+                    logger.error(
+                        f"Error issuing directive via StateManager: {state_err}",
+                        exc_info=True,
+                    )
+                    raise  # Re-raise
+
                 result_status = (
                     research_models.RequestDirectiveResultStatus.DIRECTIVE_ISSUED
                 )
@@ -590,18 +676,40 @@ def register_mcp_handlers(mcp_server: FastMCP):
                 summary_text = f"Next step: {getattr(next_directive_payload, 'inquiry_focus', 'Unknown')}"
 
             # Get current status and tools after processing
+            logger.debug("Retrieving final status and available tools...")
             current_status_str = state_manager.status.value
             available_tools = state_manager.get_available_tools()
-
-            return SubmitClarificationResult(
-                message="Clarification submitted successfully.",
-                status=result_status,
-                summary=summary_text,
-                instruction_payload=next_directive_payload,
-                error_message=None,
-                new_status=current_status_str,
-                available_tools=available_tools,
+            logger.debug(
+                f"Final status: {current_status_str}, Available tools: {available_tools}"
             )
+
+            logger.debug("Constructing SubmitClarificationResult...")
+            try:
+                result = SubmitClarificationResult(
+                    message="Clarification submitted successfully.",
+                    status=result_status,
+                    summary=summary_text,
+                    instruction_payload=next_directive_payload,
+                    error_message=None,
+                    new_status=current_status_str,
+                    available_tools=available_tools,
+                )
+                logger.debug("SubmitClarificationResult constructed successfully.")
+                return result
+            except Exception as result_err:
+                logger.error(
+                    f"Error constructing SubmitClarificationResult: {result_err}",
+                    exc_info=True,
+                )
+                # If result construction fails, we need to raise an error that the main handler can format
+                op_data = OperationalErrorData(
+                    component="MCPInterface",
+                    operation=operation,
+                    details=f"Failed to construct result: {result_err}",
+                )
+                raise AYAServerError(
+                    "Internal error preparing clarification result.", data=op_data
+                ) from result_err
         except (AYAServerError, PydanticValidationError, Exception) as e:
             raise _handle_aya_exception(e, operation) from e
 
@@ -719,17 +827,41 @@ def register_mcp_handlers(mcp_server: FastMCP):
                 )
 
             # Fetch preview data
-            preview_df = kb.get_data_preview(num_rows=10)
+            logger.debug(
+                f"Attempting to fetch preview data (max 10 rows) from KB. KB instance: {kb}"
+            )
+            try:
+                preview_df = kb.get_data_preview(num_rows=10)
+                logger.debug(
+                    f"KB get_data_preview returned. DataFrame is empty: {preview_df.empty}. Shape: {preview_df.shape if not preview_df.empty else 'N/A'}"
+                )
+            except Exception as preview_err:
+                logger.error(
+                    f"Error directly calling kb.get_data_preview: {preview_err}",
+                    exc_info=True,
+                )
+                # Re-raise to be handled by the main exception handler, but log it here first
+                raise
 
             if preview_df.empty:
                 logger.warning("Preview requested, but Knowledge Base is empty.")
                 return "No data available for preview."
 
             # Convert preview DataFrame to CSV string
-            csv_buffer = io.StringIO()
-            preview_df.to_csv(csv_buffer, index=False)
-            csv_string = csv_buffer.getvalue()
-            csv_buffer.close()
+            try:
+                csv_buffer = io.StringIO()
+                preview_df.to_csv(csv_buffer, index=False)
+                csv_string = csv_buffer.getvalue()
+                csv_buffer.close()
+            except Exception as csv_err:
+                logger.error(
+                    f"Error converting preview DataFrame to CSV: {csv_err}",
+                    exc_info=True,
+                )
+                raise AYAServerError(
+                    "Failed to generate CSV preview from data.",
+                    data={"error": str(csv_err)},
+                ) from csv_err
 
             logger.info(
                 f"Successfully generated preview CSV string (length: {len(csv_string)})."
@@ -802,24 +934,28 @@ def register_mcp_handlers(mcp_server: FastMCP):
             logger.debug(f"Generated export file path: {full_file_path}")
 
             # Fetch all data from the Knowledge Base
+            logger.debug(
+                f"Attempting to fetch all data from KB for export. KB instance: {kb}"
+            )
             try:
                 all_data_df = kb.get_all_data_as_dataframe()
-                logger.debug(f"Fetched {len(all_data_df)} rows from KnowledgeBase.")
-            except AYAServerError as kb_err:
-                # Re-raise KB errors specifically if needed, otherwise caught below
-                logger.error(
-                    f"Failed to fetch data from KB for export: {kb_err.message}"
+                logger.debug(
+                    f"KB get_all_data_as_dataframe returned. DataFrame is empty: {all_data_df.empty}. Shape: {all_data_df.shape if not all_data_df.empty else 'N/A'}"
                 )
-                raise  # Let the generic handler catch and format it
             except Exception as fetch_err:
-                # Catch unexpected errors during fetch
+                # Log the specific error during KB fetch immediately
+                logger.error(
+                    f"Error directly calling kb.get_all_data_as_dataframe: {fetch_err}",
+                    exc_info=True,
+                )
                 op_data = OperationalErrorData(
                     component="KnowledgeBase",
                     operation="get_all_data_as_dataframe",
-                    details=f"Unexpected error fetching data: {fetch_err}",
+                    details=f"Unexpected error fetching data: {type(fetch_err).__name__}: {fetch_err}",
                 )
+                # Raise a specific error that will be caught by the main handler
                 raise AYAServerError(
-                    "Failed to retrieve data from Knowledge Base for export.",
+                    f"Failed to retrieve data from Knowledge Base for export. Error: {type(fetch_err).__name__}",
                     data=op_data,
                 ) from fetch_err
 

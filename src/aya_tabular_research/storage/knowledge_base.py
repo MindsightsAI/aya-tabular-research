@@ -442,9 +442,17 @@ class TabularKnowledgeBase(KnowledgeBase):
 
     def get_full_dataset(self) -> pd.DataFrame:
         """Retrieves the full dataset from the DataStore (internal columns contain Python objects)."""
+        logger.debug("Entering TabularKnowledgeBase.get_full_dataset")
         self._raise_if_not_ready("get_full_dataset")
         try:
-            return self._data_store.get_all_data()
+            logger.debug(
+                f"Calling self._data_store.get_all_data(). DataStore instance: {self._data_store}"
+            )
+            df = self._data_store.get_all_data()
+            logger.debug(
+                f"DataStore get_all_data returned. DataFrame is empty: {df.empty}. Shape: {df.shape if not df.empty else 'N/A'}"
+            )
+            return df
         except Exception as e:
             logger.error(
                 f"Failed to get full dataset from DataStore: {e}", exc_info=True

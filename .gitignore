@@ -3,6 +3,7 @@ old/
 libs_docs/
 mcp_examples/
 docs/
+.roo/
 build_llm_context_clip.py
 run-firecrawl.sh
 
@@ -66,7 +67,6 @@ cover/
 *.pot
 
 # Django stuff:
-*.log
 local_settings.py
 db.sqlite3
 db.sqlite3-journal

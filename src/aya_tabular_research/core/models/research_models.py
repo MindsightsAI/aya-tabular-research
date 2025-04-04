@@ -125,10 +125,11 @@ class InstructionObjectV3(BaseModel):
         default=["research/submit_inquiry_report"],
         description="MCP tools the client is allowed to use while executing this instruction.",
     )
-    # Added STRATEGIC_REVIEW
-    directive_type: Literal["DISCOVERY", "ENRICHMENT", "STRATEGIC_REVIEW"] = Field(
+    directive_type: Literal[
+        "DISCOVERY", "ENRICHMENT", "STRATEGIC_REVIEW", "COMPLETION"
+    ] = Field(
         ...,
-        description="The type of directive (Discovery, Enrichment, or Strategic Review).",
+        description="The type of directive (Discovery, Enrichment, Strategic Review, or Completion).",
     )
     target_entity_id: Optional[str] = Field(
         None,

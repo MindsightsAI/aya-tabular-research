@@ -1,5 +1,7 @@
 import logging
 
+from .artifact_manager import get_artifact_path
+
 # Define the root logger name for the application
 APP_LOGGER_NAME = "aya_tabular_research"
 
@@ -25,7 +27,7 @@ def setup_logging(level=logging.DEBUG):  # Changed default level to DEBUG
         app_logger.removeHandler(handler)
 
     # Add our handler (logging to a file instead of stdout)
-    log_file_path = "mcp_server.log"  # Define log file path
+    log_file_path = get_artifact_path(filename="mcp_server.log")  # Use artifact manager
     file_handler = logging.FileHandler(log_file_path, mode="w")  # Create FileHandler
     file_handler.setFormatter(log_formatter)  # Apply formatter to file_handler
     app_logger.addHandler(file_handler)  # Add file_handler to logger
