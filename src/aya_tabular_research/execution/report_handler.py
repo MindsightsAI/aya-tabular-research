@@ -17,7 +17,6 @@ import pandas as pd
 from mcp.types import INVALID_REQUEST
 from pydantic import BaseModel, Field
 
-# Import custom exceptions and error models
 from ..core.exceptions import (
     AYAServerError,
     KBInteractionError,
@@ -25,6 +24,8 @@ from ..core.exceptions import (
 )
 
 # Import core application models and components
+# Import custom exceptions and error models
+from ..core.models.enums import DirectiveType  # Added correct import here
 from ..core.models.enums import OverallStatus  # Added for return type
 from ..core.models.enums import InquiryStatus
 from ..core.models.error_models import (
@@ -129,9 +130,11 @@ class ReportHandler:
                             error="Must be a dictionary.",
                         )
                         validation_data = ValidationErrorData(detail=[field_error])
+                        logger.debug(f"Processing data point {idx}: {data_point}")
+                        # Moved the raise statement inside the 'if' block
                         raise ReportProcessingError(
                             f"Report validation failed: Invalid data point type at index {idx}.",
-                            report_data=validation_data,  # Use ValidationErrorData here
+                            report_data=validation_data,  # Now guaranteed to be assigned
                             code=INVALID_REQUEST,
                         )
                     try:
@@ -157,15 +160,17 @@ class ReportHandler:
                             )
                             validation_data = ValidationErrorData(
                                 detail=[field_error],
-                                required_fields=schema.get("required"),
+                                required_fields=schema.get(
+                                    "required"
+                                ),  # Corrected comma placement
                             )
                             raise ReportProcessingError(
                                 f"Report validation failed: {msg}",
                                 report_data=validation_data,  # Use ValidationErrorData here
                                 code=INVALID_REQUEST,
                             ) from e
-                # If the loop completes without non-'required' errors for this data point
-                logger.debug(
+                    # If the loop completes without non-'required' errors for this data point
+                logger.debug(  # Corrected indentation (12 spaces)
                     f"Schema validation passed (or only missing required fields) for data point at index {idx}."
                 )
         # After checking all data points
@@ -184,9 +189,7 @@ class ReportHandler:
         try:
             identifier_col = task_def.identifier_column
             entities_to_update: List[Dict[str, Any]] = []
-            primary_entity_id_for_feedback: Optional[str] = (
-                None  # Track first ID for feedback
-            )
+            primary_entity_id_for_feedback: Optional[str] = None  # Fixed assignment
             index_cols = (
                 self._kb._data_store.index_columns
             )  # Get index columns from store
@@ -204,6 +207,7 @@ class ReportHandler:
                         logger.warning(f"Skipping non-dict data point at index {idx}.")
                         malformed_count += 1
                         continue
+                    logger.debug(f"DEBUG: Processing data point {idx}: {data_point}")
 
                     # Determine the primary entity ID for this data point
                     entity_id_val = data_point.get(identifier_col)
@@ -217,7 +221,7 @@ class ReportHandler:
                         )
                     else:
                         logger.warning(
-                            f"Skipping data point at index {idx} due to missing identifier ('{identifier_col}') and no target entity ID."
+                            f"DEBUG: Skipping data point at index {idx}. Reason: Missing identifier ('{identifier_col}') and no target entity ID. Data: {data_point}"
                         )
                         malformed_count += 1
                         continue
@@ -245,24 +249,52 @@ class ReportHandler:
 
                     if not list_cols_data:
                         # Simple case: no lists in granularity columns
-                        # Ensure all index columns are present
-                        if all(
-                            col in record_template
-                            and not pd.isnull(record_template[col])
-                            for col in index_cols
-                        ):
-                            entities_to_update.append(record_template)
+                        # Check requirements based on directive type
+                        is_discovery = (
+                            active_instruction
+                            and active_instruction.directive_type
+                            == DirectiveType.DISCOVERY  # Use Enum
+                        )
+                        can_add_record = False
+
+                        if is_discovery:
+                            # For DISCOVERY, only require the identifier column
+                            if identifier_col in record_template and not pd.isnull(
+                                record_template.get(identifier_col)
+                            ):
+                                can_add_record = True
+                            else:
+                                logger.warning(
+                                    f"DEBUG: Skipping DISCOVERY data point at index {idx} for entity '{current_entity_id}'. Reason: Missing identifier column '{identifier_col}'. Data: {record_template}"
+                                )
+                                malformed_count += 1
                         else:
-                            missing_req_idx = [
-                                col
+                            # For other types, require all index columns
+                            if all(
+                                col in record_template
+                                and not pd.isnull(
+                                    record_template.get(col)
+                                )  # Use .get() for safety
                                 for col in index_cols
-                                if col not in record_template
-                                or pd.isnull(record_template.get(col))
-                            ]
-                            logger.warning(
-                                f"Skipping data point at index {idx} for entity '{current_entity_id}' due to missing/null required index columns: {missing_req_idx}"
-                            )
-                            malformed_count += 1
+                            ):
+                                can_add_record = True
+                            else:
+                                missing_req_idx = [
+                                    col
+                                    for col in index_cols
+                                    if col not in record_template
+                                    or pd.isnull(record_template.get(col))
+                                ]
+                                logger.warning(
+                                    f"DEBUG: Skipping data point at index {idx} for entity '{current_entity_id}'. Reason: Missing/null required index columns: {missing_req_idx}. Data: {record_template}"
+                                )
+                                logger.warning(
+                                    f"Skipping data point at index {idx} for entity '{current_entity_id}' due to missing/null required index columns: {missing_req_idx}"
+                                )
+                                malformed_count += 1
+
+                        if can_add_record:
+                            entities_to_update.append(record_template)
                     else:
                         # Expansion case: generate product of list values
                         list_col_names = list(list_cols_data.keys())
@@ -366,55 +398,55 @@ class ReportHandler:
                                 )
                                 malformed_count += 1
 
-            # 2. Perform Batch Update for Structured Data
-            if entities_to_update:
-                self._kb.batch_update_entities(
-                    entities_to_update
-                )  # This might raise KBInteractionError
-                logger.info(
-                    f"KB Update: Submitted {len(entities_to_update)} entities/rows for batch update (Instruction: {instruction_id})."
-                )
-            elif not malformed_count:  # Only log if no other warnings occurred
-                logger.info(
-                    f"KB Update: No valid structured data points to batch update (Instruction: {instruction_id})."
-                )
+                # 2. Perform Batch Update for Structured Data
+                if entities_to_update:
+                    self._kb.batch_update_entities(
+                        entities_to_update
+                    )  # This might raise KBInteractionError
+                    logger.info(
+                        f"KB Update: Submitted {len(entities_to_update)} entities/rows for batch update (Instruction: {instruction_id})."
+                    )
+                elif not malformed_count:  # Only log if no other warnings occurred
+                    logger.info(
+                        f"KB Update: No valid structured data points to batch update (Instruction: {instruction_id})."
+                    )
 
-            # 3. Store Richer Reporting Fields (Synchronously) - Applied to the first entity ID encountered
-            if primary_entity_id_for_feedback:
-                logger.debug(
-                    f"KB Update: Storing richer report data against primary entity '{primary_entity_id_for_feedback}' (Instruction: {instruction_id})"
-                )
-                # These might raise KBInteractionError
-                if report.summary_narrative is not None:
-                    self._kb.store_narrative(
-                        primary_entity_id_for_feedback, report.summary_narrative
+                # 3. Store Richer Reporting Fields (Synchronously) - Applied to the first entity ID encountered
+                if primary_entity_id_for_feedback:
+                    logger.debug(
+                        f"KB Update: Storing richer report data against primary entity '{primary_entity_id_for_feedback}' (Instruction: {instruction_id})"
                     )
-                if report.synthesized_findings:
-                    self._kb.store_findings(
-                        primary_entity_id_for_feedback, report.synthesized_findings
-                    )
-                if report.identified_obstacles:
-                    self._kb.store_obstacles(
-                        primary_entity_id_for_feedback, report.identified_obstacles
-                    )
-                if report.proposed_next_steps:
-                    self._kb.store_proposals(
-                        primary_entity_id_for_feedback, report.proposed_next_steps
-                    )
-                if report.confidence_score is not None:
-                    self._kb.store_confidence(
-                        primary_entity_id_for_feedback, report.confidence_score
-                    )
-            elif (
-                report.summary_narrative
-                or report.synthesized_findings
-                or report.identified_obstacles
-                or report.proposed_next_steps
-                or report.confidence_score is not None
-            ):
-                logger.warning(
-                    f"KB Update: Report has richer data but no primary entity ID found (Instruction: {instruction_id}). Data not stored."
-                )  # This might happen if all data points were malformed
+                    # These might raise KBInteractionError
+                    if report.summary_narrative is not None:
+                        self._kb.store_narrative(
+                            primary_entity_id_for_feedback, report.summary_narrative
+                        )
+                    if report.synthesized_findings:
+                        self._kb.store_findings(
+                            primary_entity_id_for_feedback, report.synthesized_findings
+                        )
+                    if report.identified_obstacles:
+                        self._kb.store_obstacles(
+                            primary_entity_id_for_feedback, report.identified_obstacles
+                        )
+                    if report.proposed_next_steps:
+                        self._kb.store_proposals(
+                            primary_entity_id_for_feedback, report.proposed_next_steps
+                        )
+                    if report.confidence_score is not None:
+                        self._kb.store_confidence(
+                            primary_entity_id_for_feedback, report.confidence_score
+                        )
+                elif (
+                    report.summary_narrative
+                    or report.synthesized_findings
+                    or report.identified_obstacles
+                    or report.proposed_next_steps
+                    or report.confidence_score is not None
+                ):
+                    logger.warning(
+                        f"KB Update: Report has richer data but no primary entity ID found (Instruction: {instruction_id}). Data not stored."
+                    )  # This might happen if all data points were malformed
 
             logger.info(
                 f"Synchronous KB update finished for instruction: {instruction_id}"
@@ -499,12 +531,12 @@ class ReportHandler:
         # --- Differentiated Processing based on Directive Type ---
         strategic_decision: Optional[str] = None
         strategic_targets: Optional[List[str]] = None
-        directive_type_for_state_manager: Literal[
-            "DISCOVERY", "ENRICHMENT", "STRATEGIC_REVIEW"
-        ]
+        directive_type_for_state_manager: DirectiveType  # Use Enum for type hint
 
         if isinstance(active_directive, StrategicReviewDirective):
-            directive_type_for_state_manager = "STRATEGIC_REVIEW"
+            directive_type_for_state_manager = (
+                DirectiveType.STRATEGIC_REVIEW
+            )  # Use Enum
             logger.info(
                 f"Processing report for STRATEGIC_REVIEW directive: {active_directive.directive_id}"
             )

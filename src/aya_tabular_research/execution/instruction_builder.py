@@ -5,9 +5,10 @@ from typing import Union
 
 # Import custom exceptions and error models
 from ..core.exceptions import KBInteractionError, PlanningError
-from ..core.models.error_models import OperationalErrorData
 
 # Import necessary models and types
+from ..core.models.enums import DirectiveType  # Import the new Enum
+from ..core.models.error_models import OperationalErrorData
 from ..core.models.research_models import StrategicReviewContext  # Added
 from ..core.models.research_models import StrategicReviewDirective  # Added
 from ..core.models.research_models import (
@@ -106,7 +107,7 @@ class DirectiveBuilder:
                     reporting_guidelines=reporting_guidelines,
                     allowed_tools=["research/submit_inquiry_report"],
                     target_entity_id=target_entity_id,
-                    directive_type="ENRICHMENT",
+                    directive_type=DirectiveType.ENRICHMENT,  # Use Enum
                     directive_context=directive_context_data,  # Embed context here
                 )
                 logger.info(
@@ -135,7 +136,7 @@ class DirectiveBuilder:
                     reporting_guidelines=reporting_guidelines,
                     allowed_tools=["research/submit_inquiry_report"],
                     target_entity_id=None,
-                    directive_type="DISCOVERY",
+                    directive_type=DirectiveType.DISCOVERY,  # Use Enum
                     # No directive_context needed for discovery
                 )
                 logger.info(

@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Literal, Optional, Union  # Added Union
 from pydantic import BaseModel, Field, field_validator
 
 # Import necessary enums
-from .enums import InquiryStatus
+from .enums import DirectiveType, InquiryStatus  # Import new Enum
 
 # --- Task Definition ---
 
@@ -152,9 +152,7 @@ class InstructionObjectV3(BaseModel):
         default=["research/submit_inquiry_report"],
         description="MCP tools the client is allowed to use while executing this instruction.",
     )
-    directive_type: Literal[
-        "DISCOVERY", "ENRICHMENT", "STRATEGIC_REVIEW", "COMPLETION"
-    ] = Field(
+    directive_type: DirectiveType = Field(  # Use Enum for type hint
         ...,
         description="The type of directive (Discovery, Enrichment, Strategic Review, or Completion).",
     )
@@ -216,7 +214,9 @@ class StrategicReviewDirective(BaseModel):
     """Directive specifically requesting a strategic review from the client."""
 
     directive_id: str = Field(default_factory=lambda: f"srev_{uuid.uuid4().hex[:8]}")
-    directive_type: Literal["STRATEGIC_REVIEW"] = Field("STRATEGIC_REVIEW", frozen=True)
+    directive_type: DirectiveType = Field(
+        DirectiveType.STRATEGIC_REVIEW, frozen=True
+    )  # Use Enum for type hint and default
     research_goal_context: str  # Copied from TaskDefinition
     review_reason: str
     focus_areas: List[str] = Field(

@@ -19,7 +19,7 @@ from ..core import instances
 # Import custom exceptions and error models
 from ..core.exceptions import AYAServerError
 from ..core.models import research_models
-from ..core.models.enums import OverallStatus
+from ..core.models.enums import DirectiveType, OverallStatus  # Import Enum
 from ..core.models.error_models import OperationalErrorData
 from ..core.models.research_models import (
     DefineTaskArgs,
@@ -103,7 +103,7 @@ async def handle_define_task(args: DefineTaskArgs, ctx: Context) -> DefineTaskRe
                     "Please provide guidance via 'research/submit_user_clarification'."
                 ],
                 allowed_tools=["research/submit_user_clarification"],
-                directive_type="ENRICHMENT",  # Using ENRICHMENT as placeholder type for clarification request
+                directive_type=DirectiveType.ENRICHMENT,  # Using ENRICHMENT as placeholder type for clarification request
             )
             result_status = (
                 research_models.RequestDirectiveResultStatus.CLARIFICATION_NEEDED
@@ -117,7 +117,7 @@ async def handle_define_task(args: DefineTaskArgs, ctx: Context) -> DefineTaskRe
                     "research/preview_results",
                     "research/export_results",
                 ],
-                directive_type="COMPLETION",  # Using COMPLETION as placeholder type
+                directive_type=DirectiveType.COMPLETION,  # Using COMPLETION as placeholder type
             )
             result_status = (
                 research_models.RequestDirectiveResultStatus.RESEARCH_COMPLETE
@@ -268,14 +268,17 @@ async def handle_submit_inquiry_report(
                         "research/preview_results",
                         "research/export_results",
                     ],
-                    directive_type="COMPLETION",  # Using COMPLETION as placeholder type
+                    directive_type=DirectiveType.COMPLETION,  # Using COMPLETION as placeholder type
                 )
                 logger.info(
                     f"FINALIZE_DEBUG: Set next_directive_payload after FINALIZE: {next_directive_payload.model_dump_json(indent=2) if next_directive_payload else 'None'}"
                 )
             elif strategic_decision == "DISCOVER":
                 discovery_payload = planner._plan_discovery()
-                planner_signal = ("DISCOVERY", discovery_payload)
+                planner_signal = (
+                    DirectiveType.DISCOVERY,
+                    discovery_payload,
+                )  # Use Enum in tuple
             elif strategic_decision == "ENRICH":
                 enrichment_outcome = planner._plan_enrichment()
                 if isinstance(enrichment_outcome, tuple):
@@ -341,7 +344,7 @@ async def handle_submit_inquiry_report(
                         "research/preview_results",
                         "research/export_results",
                     ],
-                    directive_type="COMPLETION",  # Placeholder type
+                    directive_type=DirectiveType.COMPLETION,  # Placeholder type
                 )
             else:
                 planner_signal = planner_signal_tuple
@@ -531,7 +534,7 @@ async def handle_submit_user_clarification(
                     "research/preview_results",
                     "research/export_results",
                 ],
-                directive_type="COMPLETION",
+                directive_type=DirectiveType.COMPLETION,
             )
         elif state_manager.status == OverallStatus.AWAITING_DIRECTIVE:
             logger.debug("Planning next directive after clarification.")
@@ -550,7 +553,7 @@ async def handle_submit_user_clarification(
                         "Please provide further guidance via 'research/submit_user_clarification'."
                     ],
                     allowed_tools=["research/submit_user_clarification"],
-                    directive_type="ENRICHMENT",  # Placeholder
+                    directive_type=DirectiveType.ENRICHMENT,  # Placeholder
                 )
                 result_status = (
                     research_models.RequestDirectiveResultStatus.CLARIFICATION_NEEDED
@@ -568,7 +571,7 @@ async def handle_submit_user_clarification(
                         "research/preview_results",
                         "research/export_results",
                     ],
-                    directive_type="COMPLETION",
+                    directive_type=DirectiveType.COMPLETION,
                 )
             else:
                 # Build the next directive

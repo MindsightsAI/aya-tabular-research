@@ -1,10 +1,9 @@
 import logging
 from datetime import datetime, timezone
-from typing import (  # Awaitable, # Removed; Callable, # Removed
+from typing import (  # Awaitable, # Removed; Callable, # Removed; Literal, # Removed unused import
     TYPE_CHECKING,
     Any,
     List,
-    Literal,
     Optional,
     Union,
 )
@@ -14,7 +13,7 @@ from ..storage.knowledge_base import KnowledgeBase
 
 # Import custom exceptions and error models
 from .exceptions import AYAServerError, KBInteractionError
-from .models.enums import InquiryStatus, OverallStatus
+from .models.enums import DirectiveType, InquiryStatus, OverallStatus  # Import Enum
 from .models.error_models import OperationalErrorData
 from .models.research_models import (  # Added StrategicReviewDirective
     InstructionObjectV3,
@@ -51,9 +50,7 @@ class StateManager:
         # Always start in the initial state
         self._status: OverallStatus = OverallStatus.AWAITING_TASK_DEFINITION
         # Added STRATEGIC_REVIEW to the Literal
-        self.last_processed_directive_type: Optional[
-            Literal["DISCOVERY", "ENRICHMENT", "STRATEGIC_REVIEW"]
-        ] = None
+        self.last_processed_directive_type: Optional[DirectiveType] = None  # Use Enum
         self._task_definition: Optional[TaskDefinition] = None
         # Updated type hint to Union
         self._active_instruction: Optional[
@@ -246,7 +243,7 @@ class StateManager:
         self,
         inquiry_status: InquiryStatus,
         # Added STRATEGIC_REVIEW to the Literal
-        directive_type: Literal["DISCOVERY", "ENRICHMENT", "STRATEGIC_REVIEW"],
+        directive_type: DirectiveType,  # Use Enum
         obstacle_summary: Optional[str] = None,
     ):
         """Processes report outcome, transitions state based on client status."""

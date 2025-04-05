@@ -5,6 +5,7 @@ import pandas as pd
 
 # Import custom exceptions and error models
 from ..core.exceptions import KBInteractionError, PlanningError
+from ..core.models.enums import DirectiveType  # Import Enum
 from ..core.models.error_models import OperationalErrorData
 from ..core.models.research_models import TaskDefinition
 from ..storage.knowledge_base import KnowledgeBase
@@ -28,8 +29,8 @@ DiscoveryDirectiveContent = Tuple[str, List[str], None]
 # Type for the planner's output signal to the MCP Interface
 # It indicates the *type* of action needed and provides necessary parameters.
 PlannerSignal = Union[
-    Tuple[Literal["ENRICH"], EnrichmentDirectiveContent],
-    Tuple[Literal["DISCOVERY"], DiscoveryDirectiveContent],
+    Tuple[DirectiveType.ENRICHMENT, EnrichmentDirectiveContent],  # Use Enum
+    Tuple[DirectiveType.DISCOVERY, DiscoveryDirectiveContent],  # Use Enum
     Tuple[Literal["NEEDS_STRATEGIC_REVIEW"], str],  # Includes the reason
     Literal["CLARIFICATION_NEEDED"],  # If obstacles block all paths
     None,  # Indicates research completion
@@ -720,7 +721,7 @@ class Planner:
         if discovery_requested is True:
             logger.info("Planner: Client requested discovery. Planning discovery.")
             discovery_params = self._plan_discovery()
-            return ("DISCOVERY", discovery_params)
+            return (DirectiveType.DISCOVERY, discovery_params)  # Use Enum
 
         if enrichment_requested is True:
             logger.info(
@@ -751,7 +752,7 @@ class Planner:
         if kb_summary.get("entity_count", 0) == 0:
             logger.debug("Planner: Defaulting to discovery (KB empty).")
             discovery_params = self._plan_discovery()
-            return ("DISCOVERY", discovery_params)
+            return (DirectiveType.DISCOVERY, discovery_params)  # Use Enum
         else:
             logger.debug("Planner: Defaulting to enrichment planning.")
             enrichment_outcome = self._plan_enrichment()  # No priority targets here
