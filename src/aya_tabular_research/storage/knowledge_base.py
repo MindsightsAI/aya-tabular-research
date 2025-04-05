@@ -148,6 +148,16 @@ class KnowledgeBase(ABC):
         self, required_attributes: Optional[List[str]] = None
     ) -> List[str]:
         """Identifies entities missing required user-defined attributes."""
+
+    @abstractmethod
+    def get_all_entity_ids(self) -> List[str]:
+        """Retrieves a list of all known entity IDs."""
+        pass
+
+    @abstractmethod
+    def clear_obstacles_for_entity(self, entity_id: str):
+        """Clears the recorded obstacles for a specific entity."""
+        pass
         pass
 
     @abstractmethod
@@ -619,6 +629,65 @@ class TabularKnowledgeBase(KnowledgeBase):
             )
             raise KBInteractionError(
                 f"Failed to find incomplete entities: {e}", operation_data=op_data
+            ) from e
+
+    def get_all_entity_ids(self) -> List[str]:
+        """Retrieves all entity IDs from the DataStore."""
+        self._raise_if_not_ready("get_all_entity_ids")
+        try:
+            # Assumes _data_store has get_all_entity_ids
+            return self._data_store.get_all_entity_ids()
+        except AttributeError as ae:
+            logger.error(f"DataStore missing 'get_all_entity_ids' method: {ae}")
+            raise KBInteractionError(
+                "Underlying DataStore does not support 'get_all_entity_ids'.",
+                operation_data=OperationalErrorData(
+                    component="DataStore",
+                    operation="get_all_entity_ids",
+                    details=str(ae),
+                ),
+            ) from ae
+        except Exception as e:
+            logger.error(
+                f"Failed to get all entity IDs from DataStore: {e}", exc_info=True
+            )
+            op_data = OperationalErrorData(
+                component="DataStore", operation="get_all_entity_ids", details=str(e)
+            )
+            raise KBInteractionError(
+                f"Failed to get all entity IDs: {e}", operation_data=op_data
+            ) from e
+
+    def clear_obstacles_for_entity(self, entity_id: str):
+        """Clears obstacles for a specific entity in the DataStore."""
+        self._raise_if_not_ready("clear_obstacles_for_entity")
+        try:
+            # Assumes _data_store has clear_obstacles_for_entity
+            self._data_store.clear_obstacles_for_entity(entity_id)
+            logger.info(f"Cleared obstacles for entity '{entity_id}' in DataStore.")
+        except AttributeError as ae:
+            logger.error(f"DataStore missing 'clear_obstacles_for_entity' method: {ae}")
+            raise KBInteractionError(
+                "Underlying DataStore does not support 'clear_obstacles_for_entity'.",
+                operation_data=OperationalErrorData(
+                    component="DataStore",
+                    operation="clear_obstacles_for_entity",
+                    details=str(ae),
+                ),
+            ) from ae
+        except Exception as e:
+            logger.error(
+                f"Failed to clear obstacles for '{entity_id}' in DataStore: {e}",
+                exc_info=True,
+            )
+            op_data = OperationalErrorData(
+                component="DataStore",
+                operation="clear_obstacles_for_entity",
+                details=str(e),
+            )
+            raise KBInteractionError(
+                f"Failed to clear obstacles for '{entity_id}': {e}",
+                operation_data=op_data,
             ) from e
 
     def reset_knowledge(self):

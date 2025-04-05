@@ -151,10 +151,8 @@ class DirectiveBuilder:
 
                 # Gather context - these might raise KBInteractionError
                 kb_summary = self._kb.get_knowledge_summary()
-                obstacle_summary = None
-                if review_reason == "critical_obstacles":
-                    obstacle_summary = self._kb.get_obstacle_summary()
-
+                # Always fetch obstacle summary for strategic review context
+                obstacle_summary = self._kb.get_obstacle_summary()
                 strategic_context_data = StrategicReviewContext(
                     review_reason=review_reason,
                     research_goal=task_definition.task_description,

@@ -1,6 +1,7 @@
 # Standard library imports
 import datetime
 import io
+import json
 import logging
 import os
 import uuid
@@ -32,6 +33,7 @@ from ..core.models.research_models import (
     SubmitInquiryReportArgs,
     SubmitUserClarificationArgs,
 )
+from ..storage.tabular_store import INTERNAL_COLS
 
 # Import the central error handler
 from .error_handler import handle_aya_exception
@@ -839,8 +841,33 @@ async def handle_export_results(args: ExportResultsArgs, ctx: Context) -> Export
 
         # Write DataFrame directly to file based on format
         try:
+            # Create a copy for modification before export
+            df_to_export = all_data_df.copy()
+
             if args.format == ExportFormat.CSV:
-                all_data_df.to_csv(full_file_path, index=False)
+                # Serialize complex object columns to JSON strings for CSV export
+                logger.debug(
+                    f"Serializing internal columns to JSON for CSV export: {INTERNAL_COLS}"
+                )
+                for col in INTERNAL_COLS:
+                    if col in df_to_export.columns:
+                        # Check if the column actually contains list/dict before applying serialization
+                        # This check avoids errors if a column expected to be complex isn't, or is all null
+                        needs_serialization = (
+                            df_to_export[col]
+                            .apply(lambda x: isinstance(x, (list, dict)))
+                            .any()
+                        )
+                        if needs_serialization:
+                            logger.debug(f"Serializing column '{col}' to JSON.")
+                            # Apply json.dumps only to non-null values that are lists or dicts
+                            df_to_export[col] = df_to_export[col].apply(
+                                lambda x: (
+                                    json.dumps(x) if isinstance(x, (list, dict)) else x
+                                )
+                            )
+                # Export the modified DataFrame
+                df_to_export.to_csv(full_file_path, index=False)
             elif args.format == ExportFormat.JSON:
                 all_data_df.to_json(
                     full_file_path, orient="records", lines=True, index=False

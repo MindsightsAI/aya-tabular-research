@@ -105,14 +105,67 @@ class Planner:
         logger.info("Task definition set in Planner.")
 
     def incorporate_clarification(self, clarification: Optional[str]):
-        """Processes user clarification to potentially influence future planning."""
+        """
+        Processes user clarification to potentially influence future planning.
+        Specifically looks for requests to retry blocked entities.
+        """
         if clarification:
             logger.info(
                 f"Planner received user clarification: '{clarification[:100]}...'"
             )
-            # TODO: Implement logic to parse clarification and update planner state/strategy
-            # For now, just logging it is sufficient to fix the AttributeError
-            pass
+            # Basic parsing for retry requests - This is a placeholder and might need refinement
+            # Looks for "retry", "try again" near potential entity IDs (simple heuristic)
+            lower_clarification = clarification.lower()
+            if "retry" in lower_clarification or "try again" in lower_clarification:
+                try:
+                    # Attempt to find entities mentioned near retry keywords
+                    # This is very basic and might need a more robust approach
+                    all_entities = (
+                        self._kb.get_all_entity_ids()
+                    )  # Assumes KB has this method
+                    entities_to_retry = [
+                        entity_id
+                        for entity_id in all_entities
+                        if entity_id.lower()
+                        in lower_clarification  # Check if entity name is mentioned
+                    ]
+
+                    if entities_to_retry:
+                        logger.info(
+                            f"Clarification suggests retrying entities: {entities_to_retry}"
+                        )
+                        for entity_id in entities_to_retry:
+                            try:
+                                # Call the new KB method to clear obstacles
+                                self._kb.clear_obstacles_for_entity(
+                                    entity_id
+                                )  # Assumes KB has this method
+                                logger.info(
+                                    f"Cleared obstacles for entity '{entity_id}' based on user clarification."
+                                )
+                            except AttributeError:
+                                logger.error(
+                                    "KB does not have 'clear_obstacles_for_entity' method yet."
+                                )
+                            except Exception as e:
+                                logger.error(
+                                    f"Error clearing obstacles for '{entity_id}': {e}",
+                                    exc_info=True,
+                                )
+                    else:
+                        logger.info(
+                            "Clarification mentioned retry, but no specific known entities identified in the text."
+                        )
+
+                except AttributeError:
+                    logger.error("KB does not have 'get_all_entity_ids' method yet.")
+                except Exception as e:
+                    logger.error(
+                        f"Error during clarification parsing for retry: {e}",
+                        exc_info=True,
+                    )
+
+            # TODO: Implement more sophisticated parsing or state updates based on clarification
         else:
             logger.info("Planner received empty clarification.")
 
@@ -629,9 +682,10 @@ class Planner:
                 return ("ENRICH", enrichment_outcome)
             elif enrichment_outcome == "CLARIFICATION_NEEDED":
                 logger.warning(
-                    "Planner: Client requested enrichment, but all targets are blocked. Signaling clarification."
+                    "Planner: Client requested enrichment, but all targets are blocked. Requesting strategic review."
                 )
-                return "CLARIFICATION_NEEDED"
+                # Let client review the blocked state instead of direct clarification
+                return ("NEEDS_STRATEGIC_REVIEW", "critical_obstacles")
             else:  # Enrichment outcome was None (no targets found even with priority)
                 logger.warning(
                     "Planner: Client requested enrichment, but no valid targets found. Requesting strategic review."

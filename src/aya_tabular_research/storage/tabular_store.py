@@ -606,6 +606,65 @@ class TabularStore(DataStore):
                 f"Failed operation '{operation}': {e}", operation_data=op_data
             ) from e
 
+    def get_all_entity_ids(self) -> List[str]:
+        """Retrieves a list of all entity IDs (index values) from the DataFrame."""
+        operation = "get_all_entity_ids"
+        self._raise_if_not_initialized(operation)
+        assert self._df is not None
+
+        try:
+            return self._df.index.astype(str).tolist()
+        except Exception as e:
+            logger.error(f"Error retrieving all entity IDs: {e}", exc_info=True)
+            op_data = OperationalErrorData(
+                component="TabularStore", operation=operation, details=str(e)
+            )
+            raise KBInteractionError(
+                f"Failed operation '{operation}': {e}", operation_data=op_data
+            ) from e
+
+    def clear_obstacles_for_entity(self, entity_id: str):
+        """Sets the obstacle data for a specific entity to None."""
+        operation = "clear_obstacles_for_entity"
+        self._raise_if_not_initialized(operation)
+        assert self._df is not None
+
+        if OBSTACLES_COL not in self._df.columns:
+            logger.error(
+                f"Cannot clear obstacles: Column '{OBSTACLES_COL}' does not exist."
+            )
+            op_data = OperationalErrorData(
+                component="TabularStore",
+                operation=operation,
+                details=f"Column '{OBSTACLES_COL}' missing.",
+            )
+            raise KBInteractionError(
+                f"Obstacle column '{OBSTACLES_COL}' not found.", operation_data=op_data
+            )
+
+        try:
+            if entity_id in self._df.index:
+                # Set the value to None. Pandas handles None appropriately.
+                self._df.loc[entity_id, OBSTACLES_COL] = None
+                logger.info(f"Cleared obstacles for entity '{entity_id}'.")
+            else:
+                logger.warning(
+                    f"Entity '{entity_id}' not found. Cannot clear obstacles."
+                )
+        except Exception as e:
+            logger.error(
+                f"Error clearing obstacles for '{entity_id}': {e}", exc_info=True
+            )
+            op_data = OperationalErrorData(
+                component="TabularStore",
+                operation=operation,
+                details=f"Entity ID '{entity_id}': {e}",
+            )
+            raise KBInteractionError(
+                f"Failed operation '{operation}' for entity '{entity_id}': {e}",
+                operation_data=op_data,
+            ) from e
+
     def reset_storage(self):
         """Resets the store. Re-initializes if task definition exists."""
         operation = "reset_storage"
