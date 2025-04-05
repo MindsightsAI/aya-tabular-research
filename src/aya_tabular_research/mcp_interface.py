@@ -1,7 +1,9 @@
 import logging
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING  # Removed Optional
 
 from mcp.server.fastmcp import FastMCP
+
+from .core import instances  # Import the new instances module
 
 # Import core components needed for setting globals
 from .core.state_manager import StateManager
@@ -23,15 +25,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-# --- Global placeholders for components (Accessed by handlers) ---
-# These remain here so handlers imported from other modules can access them.
-# A more robust approach might involve dependency injection during registration,
-# but this maintains the current access pattern.
-_state_manager_instance: Optional[StateManager] = None
-_planner_instance: Optional[Planner] = None
-_directive_builder_instance: Optional[DirectiveBuilder] = None
-_report_handler_instance: Optional[ReportHandler] = None
-_knowledge_base_instance: Optional[KnowledgeBase] = None
+# --- Global placeholders removed - using core.instances instead ---
 
 
 def register_mcp_handlers(mcp_server: FastMCP):
@@ -76,11 +70,11 @@ def set_global_components(
     report_handler: ReportHandler,
     knowledge_base: KnowledgeBase,
 ):
-    """Sets the global component instances used by the handlers."""
-    global _state_manager_instance, _planner_instance, _directive_builder_instance, _report_handler_instance, _knowledge_base_instance
-    _state_manager_instance = state_manager
-    _planner_instance = planner
-    _directive_builder_instance = directive_builder
-    _report_handler_instance = report_handler
-    _knowledge_base_instance = knowledge_base
-    logger.debug("Global component instances set for MCP interface handlers.")
+    """Sets the component instances in the central registry (core.instances)."""
+    # No need for 'global' keyword anymore
+    instances.state_manager = state_manager
+    instances.planner = planner
+    instances.directive_builder = directive_builder
+    instances.report_handler = report_handler
+    instances.knowledge_base = knowledge_base
+    logger.debug("Component instances set in core.instances registry.")

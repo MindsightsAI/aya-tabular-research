@@ -3,6 +3,9 @@ from typing import Optional, Union
 
 from pydantic import BaseModel
 
+# Import the central instances registry
+from ..core import instances
+
 # Import custom exceptions and error models
 from ..core.exceptions import AYAServerError
 from ..core.models import research_models
@@ -12,9 +15,6 @@ from ..core.models.research_models import (
     ServerStatusPayload,
     StrategicReviewDirective,
 )
-
-# Import global component instances
-from ..mcp_interface import _knowledge_base_instance, _state_manager_instance
 
 # Import the central error handler
 from .error_handler import handle_aya_exception
@@ -26,7 +26,8 @@ async def get_server_status() -> ServerStatusPayload:
     """Provides the current status of the research task and available tools."""
     operation = "get_server_status"
     logger.debug(f"Resource '{operation}' accessed.")
-    state_manager = _state_manager_instance
+    # Access state_manager via the instances registry
+    state_manager = instances.state_manager
     try:
         if not state_manager:
             op_data = OperationalErrorData(
@@ -70,8 +71,9 @@ async def get_debug_state() -> str:
     """FOR DEBUGGING ONLY: Returns a JSON string representation of the current state."""
     operation = "get_debug_state"
     logger.debug(f"Resource '{operation}' accessed.")
-    state_manager = _state_manager_instance
-    kb = _knowledge_base_instance
+    # Access components via the instances registry
+    state_manager = instances.state_manager
+    kb = instances.knowledge_base
     try:
         if not state_manager or not kb:
             logger.warning(f"{operation}: Components not initialized.")

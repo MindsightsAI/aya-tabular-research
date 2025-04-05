@@ -6,8 +6,7 @@ from typing import (  # Removed Awaitable; Removed Callable
 
 from mcp.server.fastmcp import FastMCP
 
-# Import the mcp_interface module itself using relative import
-from . import mcp_interface as mcp_interface_module
+from .core import instances
 
 # Imports for integrated components
 from .core.state_manager import StateManager  # Removed NotifierCallback import
@@ -36,13 +35,17 @@ class AppContext:
         # Order matters: DataStore -> KB -> StateManager -> Planner/Executors
         self.data_store = TabularStore()
         self.knowledge_base = TabularKnowledgeBase(self.data_store)
-        self.state_manager = StateManager(self.knowledge_base)  # Removed notifier arg
+        self.state_manager = StateManager(self.knowledge_base)
         self.planner = Planner(self.knowledge_base)
-        self.directive_builder = DirectiveBuilder(self.knowledge_base)  # Renamed class
+        self.directive_builder = DirectiveBuilder(self.knowledge_base)
         self.report_handler = ReportHandler(self.knowledge_base, self.state_manager)
-        logger.info(
-            "AppContext initialized with Phase 3 components and original notifier."
-        )
+
+        instances.state_manager = self.state_manager
+        instances.planner = self.planner
+        instances.directive_builder = self.directive_builder
+        instances.report_handler = self.report_handler
+        instances.knowledge_base = self.knowledge_base
+        logger.info("AppContext initialized with components and original notifier.")
 
 
 # --- Server Lifespan Management ---
@@ -55,15 +58,7 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
     # --- Initialize App Context ---
     # Notifier callback removed
     app_context = AppContext()
-    # --- Assign components to globals in mcp_interface ---
-    mcp_interface_module._state_manager_instance = app_context.state_manager
-    mcp_interface_module._planner_instance = app_context.planner
-    mcp_interface_module._directive_builder_instance = (
-        app_context.directive_builder
-    )  # Renamed variable/attribute
-    mcp_interface_module._report_handler_instance = app_context.report_handler
-    mcp_interface_module._knowledge_base_instance = app_context.knowledge_base
-    logger.debug("Assigned component instances to mcp_interface globals.")
+    logger.debug("Assigned component instances to core.instances.")
 
     # State is now ephemeral per instance. StateManager initializes to AWAITING_TASK_DEFINITION.
     # KB starts empty. No loading needed.

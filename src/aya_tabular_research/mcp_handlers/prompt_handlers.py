@@ -3,14 +3,13 @@ from typing import List
 
 from mcp import types as mcp_types
 
+from ..core import instances
+
 # Import models needed for type checking and accessing data
 from ..core.models.research_models import (
     InstructionObjectV3,
     StrategicReviewDirective,
 )
-
-# Import global component instances
-from ..mcp_interface import _state_manager_instance
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +18,8 @@ async def handle_overview() -> List[mcp_types.PromptMessage]:
     """Provides a high-level overview prompt based on the current state."""
     operation = "handle_overview"
     logger.debug(f"Prompt '{operation}' accessed.")
-    state_manager = _state_manager_instance
+    # Access state_manager via the instances registry
+    state_manager = instances.state_manager
     try:
         if not state_manager:
             logger.warning(f"{operation}: StateManager not initialized.")

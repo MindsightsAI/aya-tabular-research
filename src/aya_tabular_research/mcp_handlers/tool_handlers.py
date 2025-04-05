@@ -1,3 +1,4 @@
+# Standard library imports
 import datetime
 import io
 import logging
@@ -5,9 +6,14 @@ import os
 import uuid
 from typing import Optional, Union
 
+# Third-party imports
 from mcp.server.fastmcp import Context
 from mcp.types import INVALID_REQUEST
 from pydantic import ValidationError as PydanticValidationError
+
+# Local application imports
+# Import the central instances registry
+from ..core import instances
 
 # Import custom exceptions and error models
 from ..core.exceptions import AYAServerError
@@ -27,16 +33,6 @@ from ..core.models.research_models import (
     SubmitUserClarificationArgs,
 )
 
-# Import global component instances from the main interface module
-# We access them directly for now, as per the plan.
-from ..mcp_interface import (
-    _directive_builder_instance,
-    _knowledge_base_instance,
-    _planner_instance,
-    _report_handler_instance,
-    _state_manager_instance,
-)
-
 # Import the central error handler
 from .error_handler import handle_aya_exception
 
@@ -53,9 +49,10 @@ async def handle_define_task(args: DefineTaskArgs, ctx: Context) -> DefineTaskRe
     """
     operation = "handle_define_task"
     logger.info(f"Tool '{operation}' called.")
-    state_manager = _state_manager_instance
-    planner = _planner_instance
-    directive_builder = _directive_builder_instance
+    # Access components via the instances registry
+    state_manager = instances.state_manager
+    planner = instances.planner
+    directive_builder = instances.directive_builder
 
     try:
         if not state_manager or not planner or not directive_builder:
@@ -177,10 +174,11 @@ async def handle_submit_inquiry_report(
     """
     operation = "handle_submit_inquiry_report"
     logger.info(f"Tool '{operation}' called.")
-    state_manager = _state_manager_instance
-    report_handler = _report_handler_instance
-    planner = _planner_instance
-    directive_builder = _directive_builder_instance
+    # Access components via the instances registry
+    state_manager = instances.state_manager
+    report_handler = instances.report_handler
+    planner = instances.planner
+    directive_builder = instances.directive_builder
 
     try:
         if (
@@ -460,9 +458,10 @@ async def handle_submit_user_clarification(
     """
     operation = "handle_submit_user_clarification"
     logger.info(f"Tool '{operation}' called.")
-    state_manager = _state_manager_instance
-    planner = _planner_instance
-    directive_builder = _directive_builder_instance
+    # Access components via the instances registry
+    state_manager = instances.state_manager
+    planner = instances.planner
+    directive_builder = instances.directive_builder
 
     try:
         if not state_manager or not planner or not directive_builder:
@@ -662,8 +661,9 @@ async def handle_preview_results(args: dict, ctx: Context) -> str:
     """
     operation = "handle_preview_results"
     logger.info(f"Tool '{operation}' called.")
-    state_manager = _state_manager_instance
-    kb = _knowledge_base_instance
+    # Access components via the instances registry
+    state_manager = instances.state_manager
+    kb = instances.knowledge_base
 
     try:
         if not state_manager or not kb:
@@ -753,8 +753,9 @@ async def handle_export_results(args: ExportResultsArgs, ctx: Context) -> Export
     """
     operation = "handle_export_results"
     logger.info(f"Tool '{operation}' called with format: {args.format.value}")
-    state_manager = _state_manager_instance
-    kb = _knowledge_base_instance
+    # Access components via the instances registry
+    state_manager = instances.state_manager
+    kb = instances.knowledge_base
     artifacts_dir = "artifacts"  # Relative to project root
 
     try:
@@ -813,18 +814,18 @@ async def handle_export_results(args: ExportResultsArgs, ctx: Context) -> Export
             f"Attempting to fetch all data from KB for export. KB instance: {kb}"
         )
         try:
-            all_data_df = kb.get_all_data_as_dataframe()
+            all_data_df = kb.get_full_dataset()
             logger.debug(
-                f"KB get_all_data_as_dataframe returned. DataFrame is empty: {all_data_df.empty}. Shape: {all_data_df.shape if not all_data_df.empty else 'N/A'}"
+                f"KB get_full_dataset returned. DataFrame is empty: {all_data_df.empty}. Shape: {all_data_df.shape if not all_data_df.empty else 'N/A'}"
             )
         except Exception as fetch_err:
             logger.error(
-                f"Error directly calling kb.get_all_data_as_dataframe: {fetch_err}",
+                f"Error directly calling kb.get_full_dataset: {fetch_err}",
                 exc_info=True,
             )
             op_data = OperationalErrorData(
                 component="KnowledgeBase",
-                operation="get_all_data_as_dataframe",
+                operation="get_full_dataset",
                 details=f"Unexpected error fetching data: {type(fetch_err).__name__}: {fetch_err}",
             )
             raise AYAServerError(

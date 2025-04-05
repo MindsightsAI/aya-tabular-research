@@ -28,13 +28,16 @@ def setup_logging(level=logging.DEBUG):  # Changed default level to DEBUG
 
     # Add our handler (logging to a file instead of stdout)
     log_file_path = get_artifact_path(filename="mcp_server.log")  # Use artifact manager
+    print(
+        f"DEBUG [logging_config]: Attempting to log to = {log_file_path}"
+    )  # Add this line
     file_handler = logging.FileHandler(log_file_path, mode="w")  # Create FileHandler
     file_handler.setFormatter(log_formatter)  # Apply formatter to file_handler
     app_logger.addHandler(file_handler)  # Add file_handler to logger
 
     # Prevent logs from propagating to the root logger if it has handlers
     # This helps ensure only our intended format goes to stdout via this setup
-    app_logger.propagate = False
+    # app_logger.propagate = False
 
     # Optional: Configure level for MCP library logger if needed
     # logging.getLogger("mcp").setLevel(logging.WARNING)
