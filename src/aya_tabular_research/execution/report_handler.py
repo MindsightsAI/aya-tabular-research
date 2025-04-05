@@ -1,3 +1,4 @@
+import itertools  # Added for product generation
 import logging
 from typing import (  # Added Literal, Union; Added Tuple, Union
     Any,
@@ -173,6 +174,7 @@ class ReportHandler:
     def _update_knowledge_base(self, report: InquiryReport, task_def: TaskDefinition):
         """
         Updates the Knowledge Base synchronously using batch operations.
+        Handles expansion of data points based on list values in granularity columns.
         Raises KBInteractionError on failure.
         """
         instruction_id = report.instruction_id
@@ -182,10 +184,15 @@ class ReportHandler:
         try:
             identifier_col = task_def.identifier_column
             entities_to_update: List[Dict[str, Any]] = []
-            primary_entity_id: Optional[str] = None
+            primary_entity_id_for_feedback: Optional[str] = (
+                None  # Track first ID for feedback
+            )
+            index_cols = (
+                self._kb._data_store.index_columns
+            )  # Get index columns from store
+            malformed_count = 0  # Track malformed points during expansion
 
-            # 1. Prepare and aggregate structured data
-            aggregated_entities: Dict[str, Dict[str, Any]] = {}
+            # 1. Prepare structured data (potentially expanding list values)
             if report.structured_data_points:
                 active_instruction = self._state_manager.active_instruction
                 target_entity_id_from_instruction = (
@@ -195,47 +202,107 @@ class ReportHandler:
                 for idx, data_point in enumerate(report.structured_data_points):
                     if not isinstance(data_point, dict):
                         logger.warning(f"Skipping non-dict data point at index {idx}.")
+                        malformed_count += 1
                         continue
 
-                    entity_id = data_point.get(identifier_col)
-                    entity_id_str: Optional[str] = None
-                    current_data_point = data_point.copy()  # Work with a copy
-
-                    if entity_id is not None and not pd.isnull(entity_id):
-                        entity_id_str = str(entity_id)
+                    # Determine the primary entity ID for this data point
+                    entity_id_val = data_point.get(identifier_col)
+                    current_entity_id: Optional[str] = None
+                    if entity_id_val is not None and not pd.isnull(entity_id_val):
+                        current_entity_id = str(entity_id_val)
                     elif target_entity_id_from_instruction:
-                        entity_id_str = target_entity_id_from_instruction
-                        # Ensure the identifier is in the data point being aggregated
-                        current_data_point[identifier_col] = entity_id_str
+                        current_entity_id = target_entity_id_from_instruction
                         logger.debug(
-                            f"Using target entity ID '{entity_id_str}' for data point at index {idx}"
+                            f"Using target entity ID '{current_entity_id}' for data point at index {idx}"
                         )
                     else:
                         logger.warning(
-                            f"Skipping data point at index {idx} due to missing identifier and no target entity ID in instruction."
+                            f"Skipping data point at index {idx} due to missing identifier ('{identifier_col}') and no target entity ID."
                         )
-                        continue  # Skip if no ID can be determined
+                        malformed_count += 1
+                        continue
 
-                    # Aggregate data points by entity ID
-                    if entity_id_str not in aggregated_entities:
-                        aggregated_entities[entity_id_str] = current_data_point
+                    # Track the first entity ID encountered for feedback storage
+                    if primary_entity_id_for_feedback is None:
+                        primary_entity_id_for_feedback = current_entity_id
+
+                    # Separate scalar index values and list index values
+                    # Include identifier_col in template even if it's also an index col
+                    record_template = {
+                        k: v
+                        for k, v in data_point.items()
+                        if not (k in index_cols and isinstance(v, list))
+                    }
+                    record_template[identifier_col] = (
+                        current_entity_id  # Ensure primary ID is set
+                    )
+
+                    list_cols_data = {
+                        k: v
+                        for k, v in data_point.items()
+                        if k in index_cols and isinstance(v, list)
+                    }
+
+                    if not list_cols_data:
+                        # Simple case: no lists in granularity columns
+                        # Ensure all index columns are present
+                        if all(
+                            col in record_template
+                            and not pd.isnull(record_template[col])
+                            for col in index_cols
+                        ):
+                            entities_to_update.append(record_template)
+                        else:
+                            missing_req_idx = [
+                                col
+                                for col in index_cols
+                                if col not in record_template
+                                or pd.isnull(record_template.get(col))
+                            ]
+                            logger.warning(
+                                f"Skipping data point at index {idx} for entity '{current_entity_id}' due to missing/null required index columns: {missing_req_idx}"
+                            )
+                            malformed_count += 1
                     else:
-                        # Merge/update attributes, later points overwrite earlier ones within the same report
-                        aggregated_entities[entity_id_str].update(current_data_point)
+                        # Expansion case: generate product of list values
+                        list_col_names = list(list_cols_data.keys())
+                        list_col_values = list(list_cols_data.values())
 
-            entities_to_update = list(aggregated_entities.values())
+                        # Check for empty lists which would lead to no combinations
+                        if any(not v for v in list_col_values):
+                            logger.warning(
+                                f"Skipping data point at index {idx} for entity '{current_entity_id}' due to empty list in granularity columns: {list_col_names}"
+                            )
+                            malformed_count += 1
+                            continue
 
-            # Determine primary_entity_id after aggregation (e.g., from the first aggregated entity)
-            # This is mainly used for storing richer feedback below.
-            if entities_to_update:
-                primary_entity_id = entities_to_update[0].get(identifier_col)
-                if primary_entity_id:
-                    primary_entity_id = str(primary_entity_id)  # Ensure string type
-                else:
-                    # Fallback if the first entity somehow lacks the ID after aggregation (shouldn't happen)
-                    primary_entity_id = next(iter(aggregated_entities.keys()), None)
-            else:
-                primary_entity_id = None  # No entities to update, no primary ID
+                        for value_combination in itertools.product(*list_col_values):
+                            new_record = record_template.copy()
+                            valid_combination = True
+                            for i, col_name in enumerate(list_col_names):
+                                if pd.isnull(value_combination[i]):
+                                    logger.warning(
+                                        f"Skipping expanded record for entity '{current_entity_id}' due to null value in index column '{col_name}'. Combination: {value_combination}"
+                                    )
+                                    valid_combination = False
+                                    malformed_count += 1
+                                    break  # Skip this specific combination
+                                new_record[col_name] = value_combination[i]
+
+                            if not valid_combination:
+                                continue
+
+                            # Ensure all index columns are present after combination (should be guaranteed by logic above)
+                            if all(col in new_record for col in index_cols):
+                                entities_to_update.append(new_record)
+                            else:  # Should not happen if logic is correct
+                                missing_req_idx = [
+                                    col for col in index_cols if col not in new_record
+                                ]
+                                logger.error(
+                                    f"INTERNAL ERROR: Expanded record for entity '{current_entity_id}' missing required index columns: {missing_req_idx}. Combination: {value_combination}"
+                                )
+                                malformed_count += 1
 
             # 2. Perform Batch Update for Structured Data
             if entities_to_update:
@@ -243,38 +310,38 @@ class ReportHandler:
                     entities_to_update
                 )  # This might raise KBInteractionError
                 logger.info(
-                    f"KB Update: Submitted {len(entities_to_update)} entities for batch update (Instruction: {instruction_id})."
+                    f"KB Update: Submitted {len(entities_to_update)} entities/rows for batch update (Instruction: {instruction_id})."
                 )
-            else:
+            elif not malformed_count:  # Only log if no other warnings occurred
                 logger.info(
                     f"KB Update: No valid structured data points to batch update (Instruction: {instruction_id})."
                 )
 
-            # 3. Store Richer Reporting Fields (Synchronously)
-            if primary_entity_id:
+            # 3. Store Richer Reporting Fields (Synchronously) - Applied to the first entity ID encountered
+            if primary_entity_id_for_feedback:
                 logger.debug(
-                    f"KB Update: Storing richer report data for entity '{primary_entity_id}' (Instruction: {instruction_id})"
+                    f"KB Update: Storing richer report data against primary entity '{primary_entity_id_for_feedback}' (Instruction: {instruction_id})"
                 )
                 # These might raise KBInteractionError
                 if report.summary_narrative is not None:
                     self._kb.store_narrative(
-                        primary_entity_id, report.summary_narrative
+                        primary_entity_id_for_feedback, report.summary_narrative
                     )
                 if report.synthesized_findings:
                     self._kb.store_findings(
-                        primary_entity_id, report.synthesized_findings
+                        primary_entity_id_for_feedback, report.synthesized_findings
                     )
                 if report.identified_obstacles:
                     self._kb.store_obstacles(
-                        primary_entity_id, report.identified_obstacles
+                        primary_entity_id_for_feedback, report.identified_obstacles
                     )
                 if report.proposed_next_steps:
                     self._kb.store_proposals(
-                        primary_entity_id, report.proposed_next_steps
+                        primary_entity_id_for_feedback, report.proposed_next_steps
                     )
                 if report.confidence_score is not None:
                     self._kb.store_confidence(
-                        primary_entity_id, report.confidence_score
+                        primary_entity_id_for_feedback, report.confidence_score
                     )
             elif (
                 report.summary_narrative
@@ -285,7 +352,7 @@ class ReportHandler:
             ):
                 logger.warning(
                     f"KB Update: Report has richer data but no primary entity ID found (Instruction: {instruction_id}). Data not stored."
-                )
+                )  # This might happen if all data points were malformed
 
             logger.info(
                 f"Synchronous KB update finished for instruction: {instruction_id}"
@@ -305,7 +372,7 @@ class ReportHandler:
             )
             op_data = OperationalErrorData(
                 component="KnowledgeBase",
-                operation="_update_knowledge_base",  # Or more specific operation if possible
+                operation="_update_knowledge_base",
                 details=str(kb_exc),
             )
             raise KBInteractionError(
@@ -500,26 +567,23 @@ class ReportHandler:
             logger.info(
                 f"PROCESS_REPORT: Successfully signaled report received to StateManager. Client status: {report.status.value}"
             )
-            # Return status and the extracted decision/targets (which will be None for non-strategic reports)
-            return self._state_manager.status, strategic_decision, strategic_targets
-
-        except Exception as state_signal_error:
-            # If signaling state fails, this is a critical internal error
+            # Return the new status from the state manager
+            return (
+                self._state_manager.status,
+                strategic_decision,
+                strategic_targets,
+            )
+        except Exception as signal_exc:
             logger.critical(
-                f"PROCESS_REPORT: Failed to signal report received to StateManager: {state_signal_error}",
+                f"CRITICAL: Failed to signal report outcome to StateManager for instruction {report.instruction_id}: {signal_exc}",
                 exc_info=True,
             )
             op_data = OperationalErrorData(
                 component="StateManager",
                 operation="report_received",
-                details=str(state_signal_error),
+                details=str(signal_exc),
             )
-            # Raise a base server error as this is an internal failure after core processing
+            # This is a critical internal error
             raise AYAServerError(
-                f"Failed processing report outcome signal: {state_signal_error}",
-                data=op_data,
-            ) from state_signal_error
-            # Removed setting fatal error here, let the interface layer handle the final McpError
-
-
-# --- End Class ReportHandler ---
+                f"Failed to signal report outcome: {signal_exc}", data=op_data
+            ) from signal_exc

@@ -33,6 +33,10 @@ class TaskDefinition(BaseModel):  # Keep original TaskDefinition
     hints: Optional[str] = Field(
         None, description="Optional hints or context for the discovery process."
     )
+    granularity_columns: Optional[List[str]] = Field(
+        None,
+        description="Columns defining row uniqueness. Defaults to [identifier_column] if None.",
+    )
     # Add other fields like query_guidance, context_columns later if needed
 
     @field_validator("columns")
@@ -71,6 +75,29 @@ class TaskDefinition(BaseModel):  # Keep original TaskDefinition
             )
         if id_col and id_col in v:
             raise ValueError(f"Identifier column '{id_col}' cannot be a target column.")
+        return v
+
+    @field_validator("granularity_columns")
+    @classmethod
+    def validate_granularity_columns(cls, v, info: Any):
+        if v is None:
+            return v  # Allow None
+
+        cols = set(info.data.get("columns", []))
+        id_col = info.data.get("identifier_column")
+
+        if not v:
+            raise ValueError("granularity_columns cannot be an empty list if provided.")
+
+        invalid_granularity_cols = [gc for gc in v if gc not in cols]
+        if invalid_granularity_cols:
+            raise ValueError(
+                f"Granularity columns must be present in the columns list: {invalid_granularity_cols}"
+            )
+        if id_col and id_col not in v:
+            raise ValueError(
+                f"Granularity columns must include the identifier column ('{id_col}')."
+            )
         return v
 
 

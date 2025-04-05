@@ -43,6 +43,9 @@ CONFIDENCE_THRESHOLD = 0.7
 LOW_CONFIDENCE_BOOST = 2.0  # Use float
 PROPOSAL_BOOST = 1.0  # Use float
 # RECENCY_PENALTY_FACTOR = 0.1 # Example: Penalize recently attempted entities slightly (Not implemented yet)
+RETRY_PRIORITY_BOOST = (
+    100.0  # Very high boost for entities explicitly requested for retry
+)
 
 
 class CandidateEvaluation(Dict):
@@ -91,6 +94,8 @@ class Planner:
         # Stagnation tracking state
         self._stagnation_counter: int = 0
         self._last_incomplete_set: Optional[set[str]] = None
+        # State for prioritizing retries after clarification
+        self._entities_to_prioritize_retry: List[str] = []
         logger.info(
             f"Planner initialized with Obstacle Threshold: {self._obstacle_threshold}, "
             f"Confidence Threshold: {self._confidence_threshold}, "
@@ -107,67 +112,96 @@ class Planner:
     def incorporate_clarification(self, clarification: Optional[str]):
         """
         Processes user clarification to potentially influence future planning.
-        Specifically looks for requests to retry blocked entities.
+        Specifically looks for requests to retry blocked entities and clears their obstacles.
+        Populates self._entities_to_prioritize_retry for the next planning cycle.
+        Raises PlanningError if KB interaction fails during processing.
         """
-        if clarification:
-            logger.info(
-                f"Planner received user clarification: '{clarification[:100]}...'"
-            )
-            # Basic parsing for retry requests - This is a placeholder and might need refinement
-            # Looks for "retry", "try again" near potential entity IDs (simple heuristic)
-            lower_clarification = clarification.lower()
-            if "retry" in lower_clarification or "try again" in lower_clarification:
-                try:
-                    # Attempt to find entities mentioned near retry keywords
-                    # This is very basic and might need a more robust approach
-                    all_entities = (
-                        self._kb.get_all_entity_ids()
-                    )  # Assumes KB has this method
-                    entities_to_retry = [
-                        entity_id
-                        for entity_id in all_entities
-                        if entity_id.lower()
-                        in lower_clarification  # Check if entity name is mentioned
-                    ]
+        # Reset retry list at the start of processing each clarification
+        self._entities_to_prioritize_retry = []
 
-                    if entities_to_retry:
-                        logger.info(
-                            f"Clarification suggests retrying entities: {entities_to_retry}"
-                        )
-                        for entity_id in entities_to_retry:
-                            try:
-                                # Call the new KB method to clear obstacles
-                                self._kb.clear_obstacles_for_entity(
-                                    entity_id
-                                )  # Assumes KB has this method
-                                logger.info(
-                                    f"Cleared obstacles for entity '{entity_id}' based on user clarification."
-                                )
-                            except AttributeError:
-                                logger.error(
-                                    "KB does not have 'clear_obstacles_for_entity' method yet."
-                                )
-                            except Exception as e:
-                                logger.error(
-                                    f"Error clearing obstacles for '{entity_id}': {e}",
-                                    exc_info=True,
-                                )
-                    else:
-                        logger.info(
-                            "Clarification mentioned retry, but no specific known entities identified in the text."
-                        )
-
-                except AttributeError:
-                    logger.error("KB does not have 'get_all_entity_ids' method yet.")
-                except Exception as e:
-                    logger.error(
-                        f"Error during clarification parsing for retry: {e}",
-                        exc_info=True,
-                    )
-
-            # TODO: Implement more sophisticated parsing or state updates based on clarification
-        else:
+        if not clarification:
             logger.info("Planner received empty clarification.")
+            return
+
+        logger.info(
+            f"Planner received user clarification: '{clarification}'"
+        )  # Log full text
+
+        # Basic parsing for retry requests
+        lower_clarification = clarification.lower()
+        if "retry" in lower_clarification or "try again" in lower_clarification:
+            logger.debug(
+                "Clarification contains retry keywords. Attempting to identify entities."
+            )
+            try:
+                all_entities = self._kb.get_all_entity_ids()
+                logger.debug(f"All known entity IDs from KB: {all_entities}")
+            except KBInteractionError as kbe:
+                logger.error(
+                    f"Failed to get entity IDs from KB during clarification processing: {kbe}",
+                    exc_info=True,
+                )
+                raise PlanningError(
+                    f"Failed to get entity IDs for clarification: {kbe.message}",
+                    operation_data=kbe.data,
+                ) from kbe
+            except Exception as e:
+                logger.error(
+                    f"Unexpected error getting entity IDs from KB during clarification processing: {e}",
+                    exc_info=True,
+                )
+                raise PlanningError(
+                    f"Unexpected error getting entity IDs for clarification: {e}"
+                ) from e
+
+            # Identify entities mentioned in the clarification (case-insensitive check)
+            entities_mentioned = [
+                entity_id
+                for entity_id in all_entities
+                if entity_id.lower() in lower_clarification
+            ]
+            logger.debug(
+                f"Entities mentioned in clarification text: {entities_mentioned}"
+            )
+
+            if entities_mentioned:
+                logger.info(
+                    f"Clarification suggests retrying entities: {entities_mentioned}"
+                )
+                for entity_id in entities_mentioned:
+                    try:
+                        self._kb.clear_obstacles_for_entity(entity_id)
+                        logger.info(
+                            f"Successfully cleared obstacles for entity '{entity_id}'. Adding to retry priority list."
+                        )
+                        self._entities_to_prioritize_retry.append(entity_id)
+                    except KBInteractionError as kbe:
+                        logger.error(
+                            f"Failed to clear obstacles for '{entity_id}' via KB: {kbe}",
+                            exc_info=True,
+                        )
+                        # Raise PlanningError to signal clarification processing failure
+                        raise PlanningError(
+                            f"Failed to clear obstacles for '{entity_id}': {kbe.message}",
+                            operation_data=kbe.data,
+                        ) from kbe
+                    except Exception as e:
+                        logger.error(
+                            f"Unexpected error clearing obstacles for '{entity_id}': {e}",
+                            exc_info=True,
+                        )
+                        # Raise PlanningError for unexpected issues
+                        raise PlanningError(
+                            f"Unexpected error clearing obstacles for '{entity_id}': {e}"
+                        ) from e
+            else:
+                logger.info(
+                    "Clarification mentioned retry, but no specific known entities identified in the text."
+                )
+        else:
+            logger.debug("Clarification did not contain retry keywords.")
+
+        # TODO: Implement more sophisticated parsing or state updates based on clarification if needed.
 
     def _plan_discovery(self) -> DiscoveryDirectiveContent:
         """Generates parameters for a Discovery Directive."""
@@ -272,7 +306,14 @@ class Planner:
                 if proposals:
                     priority_score += PROPOSAL_BOOST
                     logger.debug(
-                        f"Candidate {entity_id} has proposals, boosting priority."
+                        f"Candidate {entity_id} has proposals, boosting priority by {PROPOSAL_BOOST}."
+                    )
+
+                # High boost if explicitly requested for retry via clarification
+                if entity_id in self._entities_to_prioritize_retry:
+                    priority_score += RETRY_PRIORITY_BOOST
+                    logger.info(
+                        f"Candidate {entity_id} requested for retry, boosting priority significantly by {RETRY_PRIORITY_BOOST}."
                     )
 
             else:  # This case now covers both actual None profile and KB read failures
@@ -434,7 +475,9 @@ class Planner:
             raise KBInteractionError(
                 f"Failed to find incomplete entities: {e}", operation_data=op_data
             ) from e
-        logger.debug(f"Planner: Found incomplete entities: {incomplete_entities}")
+        logger.info(
+            f"Planner: Found {len(incomplete_entities)} incomplete entities: {incomplete_entities}"
+        )
 
         if not incomplete_entities:
             logger.info(
@@ -446,6 +489,9 @@ class Planner:
         # --- Evaluate Candidates ---
         candidate_evaluations, blocked_candidates = self._evaluate_candidates(
             incomplete_entities
+        )
+        logger.info(
+            f"Planner: Evaluated candidates. Viable: {len(candidate_evaluations)}, Blocked: {len(blocked_candidates)} ({blocked_candidates})"
         )
 
         # --- Handle Blockers / Select Candidate (with Priority Targets) ---
@@ -478,6 +524,9 @@ class Planner:
         else:
             # No priority targets, select from all viable candidates
             selected_candidate = self._select_best_candidate(viable_candidates)
+            logger.info(
+                f"Planner: Selected candidate: {selected_candidate['id'] if selected_candidate else 'None'}"
+            )
 
         # Handle cases where no candidate could be selected or all are blocked
         if not selected_candidate:
@@ -516,6 +565,8 @@ class Planner:
             focus_areas,
             target_entity_id,  # This is now guaranteed to be a string ID
         )
+        # Clear the retry list now that a selection has been made based on it
+        self._entities_to_prioritize_retry = []
         return directive_content  # Return the tuple directly
 
     def determine_next_directive(

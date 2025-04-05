@@ -153,6 +153,9 @@ class DirectiveBuilder:
                 kb_summary = self._kb.get_knowledge_summary()
                 # Always fetch obstacle summary for strategic review context
                 obstacle_summary = self._kb.get_obstacle_summary()
+                logger.debug(
+                    f"Obstacle summary for strategic review context: {obstacle_summary}"
+                )
                 strategic_context_data = StrategicReviewContext(
                     review_reason=review_reason,
                     research_goal=task_definition.task_description,
