@@ -1,4 +1,5 @@
 import logging
+import os
 from contextlib import asynccontextmanager
 from typing import (  # Removed Awaitable; Removed Callable
     AsyncIterator,
@@ -32,11 +33,36 @@ SERVER_VERSION = "0.4.3"  # Incremented version for status resource approach
 # Holds shared application resources
 class AppContext:
     def __init__(self):  # Removed mcp_notifier
+        # Read thresholds from environment variables with defaults
+        try:
+            obstacle_thresh_val = float(os.environ.get("AYA_OBSTACLE_THRESHOLD", "0.5"))
+        except ValueError:
+            logger.warning("Invalid AYA_OBSTACLE_THRESHOLD env var. Using default 0.5")
+            obstacle_thresh_val = 0.5
+        try:
+            conf_thresh_val = float(os.environ.get("AYA_CONFIDENCE_THRESHOLD", "0.6"))
+        except ValueError:
+            logger.warning(
+                "Invalid AYA_CONFIDENCE_THRESHOLD env var. Using default 0.6"
+            )
+            conf_thresh_val = 0.6
+        try:
+            stagnation_cycles_val = int(os.environ.get("AYA_STAGNATION_CYCLES", "3"))
+        except ValueError:
+            logger.warning("Invalid AYA_STAGNATION_CYCLES env var. Using default 3")
+            stagnation_cycles_val = 3
+
         # Order matters: DataStore -> KB -> StateManager -> Planner/Executors
         self.data_store = TabularStore()
         self.knowledge_base = TabularKnowledgeBase(self.data_store)
         self.state_manager = StateManager(self.knowledge_base)
-        self.planner = Planner(self.knowledge_base)
+        # Pass thresholds to Planner
+        self.planner = Planner(
+            self.knowledge_base,
+            obstacle_threshold=obstacle_thresh_val,
+            confidence_threshold=conf_thresh_val,
+            stagnation_cycles=stagnation_cycles_val,  # Pass stagnation cycles
+        )
         self.directive_builder = DirectiveBuilder(self.knowledge_base)
         self.report_handler = ReportHandler(self.knowledge_base, self.state_manager)
 

@@ -169,6 +169,9 @@ class TabularStore(DataStore):
                         logger.debug(
                             f"[{operation}] Updating '{entity_id}': Setting column '{col}' to value '{value}' (type: {type(value)})"
                         )
+                        logger.debug(
+                            f"Attempting assignment: self._df.loc['{entity_id}', '{col}'] = {value!r} (Type: {type(value)})"
+                        )
                         self._df.loc[entity_id, col] = value
                     else:
                         logger.warning(
@@ -215,6 +218,7 @@ class TabularStore(DataStore):
         num_incoming = len(entities)
         logger.debug(f"Starting {operation} for {num_incoming} entities.")
 
+        logger.debug(f"[{operation}] Received entities: {entities}")
         try:
             processed_entities = []
             malformed_count = 0
@@ -264,6 +268,9 @@ class TabularStore(DataStore):
                 # Ensure columns match before update to avoid adding new columns unexpectedly
                 update_cols = existing_entities_df.columns.intersection(
                     self._df.columns
+                )
+                logger.debug(
+                    f"[{operation}] Index of existing_entities_df before update: {existing_entities_df.index.tolist()}"
                 )
                 self._df.update(existing_entities_df[update_cols])
                 updated_count = len(existing_entities_df)
@@ -422,6 +429,126 @@ class TabularStore(DataStore):
             raise KBInteractionError(
                 f"Failed operation '{operation}': {e}", operation_data=op_data
             ) from e
+
+    # --- Methods for Retrieving Richer Feedback Data ---
+
+    def get_feedback_for_entity(self, entity_id: str, column_name: str) -> Any:
+        """Helper to retrieve data from a specific feedback column for an entity."""
+        operation = f"get_feedback_for_entity ({column_name})"
+        self._raise_if_not_initialized(operation)
+        assert self._df is not None
+
+        if column_name not in INTERNAL_COLS:
+            logger.warning(
+                f"Attempted to get feedback from non-internal column: {column_name}"
+            )
+            return None  # Or raise? Returning None seems safer for planner.
+
+        try:
+            if entity_id in self._df.index and column_name in self._df.columns:
+                value = self._df.loc[entity_id, column_name]
+                # Return None if value is NaN/NaT, otherwise return the value
+                return None if pd.isna(value) else value
+            else:
+                logger.debug(
+                    f"Entity '{entity_id}' or column '{column_name}' not found for feedback retrieval."
+                )
+                return None
+        except Exception as e:
+            logger.error(
+                f"Error retrieving feedback '{column_name}' for entity '{entity_id}': {e}",
+                exc_info=True,
+            )
+            # Avoid raising KBInteractionError here to prevent breaking planning loops? Log and return None.
+            # Consider if specific error types should still raise.
+            return None
+
+    def get_obstacles_for_entity(
+        self, entity_id: str
+    ) -> Optional[List[Dict[str, Any]]]:
+        """Retrieves identified obstacles for a specific entity."""
+        return self.get_feedback_for_entity(entity_id, OBSTACLES_COL)
+
+    def get_confidence_for_entity(self, entity_id: str) -> Optional[float]:
+        """Retrieves confidence score for a specific entity."""
+        return self.get_feedback_for_entity(entity_id, CONFIDENCE_COL)
+
+    def get_proposals_for_entity(
+        self, entity_id: str
+    ) -> Optional[List[Dict[str, Any]]]:
+        """Retrieves proposed next steps for a specific entity."""
+        return self.get_feedback_for_entity(entity_id, PROPOSALS_COL)
+
+    def get_summary_narrative_for_entity(self, entity_id: str) -> Optional[str]:
+        """Retrieves summary narrative for a specific entity."""
+        return self.get_feedback_for_entity(entity_id, NARRATIVE_COL)
+
+    def get_entities_with_active_obstacles(self) -> List[str]:
+        """Retrieves IDs of entities that have non-empty obstacle lists."""
+        operation = "get_entities_with_active_obstacles"
+        self._raise_if_not_initialized(operation)
+        assert self._df is not None
+
+        if OBSTACLES_COL not in self._df.columns or self._df.empty:
+            return []
+
+        try:
+            # Filter rows where the obstacle column is not null/NaN AND is not an empty list
+            mask = self._df[OBSTACLES_COL].notna() & (
+                self._df[OBSTACLES_COL].apply(
+                    lambda x: isinstance(x, list) and len(x) > 0
+                )
+            )
+            obstacle_entities = self._df[mask].index.tolist()
+            return [str(eid) for eid in obstacle_entities]
+        except Exception as e:
+            logger.error(f"Error in {operation}: {e}", exc_info=True)
+            # Avoid raising KBInteractionError here? Log and return empty list.
+            return []
+
+    def get_average_confidence(self) -> Optional[float]:
+        """Calculates the average confidence score across entities with scores."""
+        operation = "get_average_confidence"
+        self._raise_if_not_initialized(operation)
+        assert self._df is not None
+
+        if CONFIDENCE_COL not in self._df.columns or self._df.empty:
+            return None
+
+        try:
+            # Ensure the column is numeric, coercing errors to NaN
+            numeric_confidence = pd.to_numeric(
+                self._df[CONFIDENCE_COL], errors="coerce"
+            )
+            if numeric_confidence.notna().sum() == 0:
+                return None  # No valid scores
+            return numeric_confidence.mean()
+        except Exception as e:
+            logger.error(f"Error in {operation}: {e}", exc_info=True)
+            # Avoid raising KBInteractionError here? Log and return None.
+            return None
+
+    def get_low_confidence_entities(self, threshold: float) -> List[str]:
+        """Retrieves IDs of entities with confidence score below a threshold."""
+        operation = "get_low_confidence_entities"
+        self._raise_if_not_initialized(operation)
+        assert self._df is not None
+
+        if CONFIDENCE_COL not in self._df.columns or self._df.empty:
+            return []
+
+        try:
+            # Ensure the column is numeric, coercing errors to NaN
+            numeric_confidence = pd.to_numeric(
+                self._df[CONFIDENCE_COL], errors="coerce"
+            )
+            mask = numeric_confidence < threshold
+            low_conf_entities = self._df[mask].index.tolist()
+            return [str(eid) for eid in low_conf_entities]
+        except Exception as e:
+            logger.error(f"Error in {operation}: {e}", exc_info=True)
+            # Avoid raising KBInteractionError here? Log and return empty list.
+            return []
 
     def find_entities_lacking_attributes(
         self, required_attributes: List[str]

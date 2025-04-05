@@ -114,6 +114,21 @@ class KnowledgeBase(ABC):
     # --- End Methods for Richer Data ---
 
     @abstractmethod
+    def get_entities_with_active_obstacles(self) -> List[str]:
+        """Retrieves IDs of entities that have non-empty obstacle lists."""
+        pass
+
+    @abstractmethod
+    def get_average_confidence(self) -> Optional[float]:
+        """Calculates the average confidence score across entities with scores."""
+        pass
+
+    @abstractmethod
+    def get_low_confidence_entities(self, threshold: float) -> List[str]:
+        """Retrieves IDs of entities with confidence score below a threshold."""
+        pass
+
+    @abstractmethod
     def get_entity_profile(self, entity_id: str) -> Optional[Dict[str, Any]]:
         """Retrieves a profile for a specific entity."""
         pass
@@ -372,53 +387,77 @@ class TabularKnowledgeBase(KnowledgeBase):
                 f"Error generating obstacle summary: {e}", operation_data=op_data
             ) from e
 
-    def _get_rich_attribute(self, entity_id: str, column_name: str) -> Optional[Any]:
-        """Helper to retrieve a specific attribute, expecting it to be the stored Python object."""
-        # _raise_if_not_ready implicitly called by get_entity_profile
-        try:
-            profile = self.get_entity_profile(entity_id)
-            if profile:
-                return profile.get(column_name)
-            return None
-        except KBInteractionError:  # Catch error from get_entity_profile
-            logger.error(
-                f"Failed to get {column_name} for entity '{entity_id}' due to underlying profile retrieval failure.",
-                exc_info=False,
-            )
-            raise  # Re-raise the specific error
-        except Exception as e:
-            logger.error(
-                f"Unexpected error retrieving {column_name} for entity '{entity_id}': {e}",
-                exc_info=True,
-            )
-            op_data = OperationalErrorData(
-                component="KnowledgeBase",
-                operation="_get_rich_attribute",
-                details=f"Getting {column_name}: {e}",
-            )
-            raise KBInteractionError(
-                f"Failed to retrieve {column_name}: {e}", operation_data=op_data
-            ) from e
-
     def get_findings(self, entity_id: str) -> Optional[List[Dict[str, Any]]]:
         """Retrieves stored findings (list of dicts) for a specific entity."""
-        return self._get_rich_attribute(entity_id, FINDINGS_COL)
+        self._raise_if_not_ready("get_findings")
+        # Assumes _data_store has get_feedback_for_entity
+        return self._data_store.get_feedback_for_entity(entity_id, FINDINGS_COL)
 
     def get_obstacles(self, entity_id: str) -> Optional[List[Dict[str, Any]]]:
         """Retrieves stored obstacles (list of dicts) for a specific entity."""
-        return self._get_rich_attribute(entity_id, OBSTACLES_COL)
+        self._raise_if_not_ready("get_obstacles")
+        # Assumes _data_store has get_feedback_for_entity
+        return self._data_store.get_feedback_for_entity(entity_id, OBSTACLES_COL)
 
     def get_proposals(self, entity_id: str) -> Optional[List[Dict[str, Any]]]:
         """Retrieves stored proposals (list of dicts) for a specific entity."""
-        return self._get_rich_attribute(entity_id, PROPOSALS_COL)
+        self._raise_if_not_ready("get_proposals")
+        # Assumes _data_store has get_feedback_for_entity
+        return self._data_store.get_feedback_for_entity(entity_id, PROPOSALS_COL)
 
     def get_confidence(self, entity_id: str) -> Optional[float]:
         """Retrieves the stored confidence score for a specific entity."""
-        return self._get_rich_attribute(entity_id, CONFIDENCE_COL)
+        self._raise_if_not_ready("get_confidence")
+        # Assumes _data_store has get_feedback_for_entity
+        return self._data_store.get_feedback_for_entity(entity_id, CONFIDENCE_COL)
 
     def get_narrative(self, entity_id: str) -> Optional[str]:
         """Retrieves the stored narrative for a specific entity."""
-        return self._get_rich_attribute(entity_id, NARRATIVE_COL)
+        self._raise_if_not_ready("get_narrative")
+        # Assumes _data_store has get_feedback_for_entity
+        return self._data_store.get_feedback_for_entity(entity_id, NARRATIVE_COL)
+
+    def get_entities_with_active_obstacles(self) -> List[str]:
+        """Retrieves IDs of entities that have non-empty obstacle lists from the DataStore."""
+        self._raise_if_not_ready("get_entities_with_active_obstacles")
+        try:
+            # Assumes _data_store has get_entities_with_active_obstacles
+            return self._data_store.get_entities_with_active_obstacles()
+        except Exception as e:
+            # Log error but return empty list to avoid breaking planner
+            logger.error(
+                f"Error retrieving entities with obstacles from DataStore: {e}",
+                exc_info=True,
+            )
+            return []
+
+    def get_average_confidence(self) -> Optional[float]:
+        """Calculates the average confidence score via the DataStore."""
+        self._raise_if_not_ready("get_average_confidence")
+        try:
+            # Assumes _data_store has get_average_confidence
+            return self._data_store.get_average_confidence()
+        except Exception as e:
+            # Log error but return None to avoid breaking planner
+            logger.error(
+                f"Error retrieving average confidence from DataStore: {e}",
+                exc_info=True,
+            )
+            return None
+
+    def get_low_confidence_entities(self, threshold: float) -> List[str]:
+        """Retrieves IDs of low confidence entities via the DataStore."""
+        self._raise_if_not_ready("get_low_confidence_entities")
+        try:
+            # Assumes _data_store has get_low_confidence_entities
+            return self._data_store.get_low_confidence_entities(threshold)
+        except Exception as e:
+            # Log error but return empty list to avoid breaking planner
+            logger.error(
+                f"Error retrieving low confidence entities from DataStore: {e}",
+                exc_info=True,
+            )
+            return []
 
     # --- End Methods for Retrieving Richer Data / Context ---
 

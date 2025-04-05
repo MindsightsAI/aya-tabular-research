@@ -184,7 +184,8 @@ class ReportHandler:
             entities_to_update: List[Dict[str, Any]] = []
             primary_entity_id: Optional[str] = None
 
-            # 1. Prepare structured data
+            # 1. Prepare and aggregate structured data
+            aggregated_entities: Dict[str, Dict[str, Any]] = {}
             if report.structured_data_points:
                 active_instruction = self._state_manager.active_instruction
                 target_entity_id_from_instruction = (
@@ -197,27 +198,44 @@ class ReportHandler:
                         continue
 
                     entity_id = data_point.get(identifier_col)
-                    entity_id_str = None  # Reset for each data point
+                    entity_id_str: Optional[str] = None
+                    current_data_point = data_point.copy()  # Work with a copy
 
                     if entity_id is not None and not pd.isnull(entity_id):
                         entity_id_str = str(entity_id)
-                        entities_to_update.append(data_point.copy())  # Use copy
                     elif target_entity_id_from_instruction:
                         entity_id_str = target_entity_id_from_instruction
-                        data_point_with_id = data_point.copy()
-                        data_point_with_id[identifier_col] = entity_id_str
-                        entities_to_update.append(data_point_with_id)
+                        # Ensure the identifier is in the data point being aggregated
+                        current_data_point[identifier_col] = entity_id_str
                         logger.debug(
-                            f"Injected target entity ID '{entity_id_str}' into data point at index {idx}"
+                            f"Using target entity ID '{entity_id_str}' for data point at index {idx}"
                         )
                     else:
                         logger.warning(
                             f"Skipping data point at index {idx} due to missing identifier and no target entity ID in instruction."
                         )
-                        continue
+                        continue  # Skip if no ID can be determined
 
-                    if primary_entity_id is None and entity_id_str:
-                        primary_entity_id = entity_id_str
+                    # Aggregate data points by entity ID
+                    if entity_id_str not in aggregated_entities:
+                        aggregated_entities[entity_id_str] = current_data_point
+                    else:
+                        # Merge/update attributes, later points overwrite earlier ones within the same report
+                        aggregated_entities[entity_id_str].update(current_data_point)
+
+            entities_to_update = list(aggregated_entities.values())
+
+            # Determine primary_entity_id after aggregation (e.g., from the first aggregated entity)
+            # This is mainly used for storing richer feedback below.
+            if entities_to_update:
+                primary_entity_id = entities_to_update[0].get(identifier_col)
+                if primary_entity_id:
+                    primary_entity_id = str(primary_entity_id)  # Ensure string type
+                else:
+                    # Fallback if the first entity somehow lacks the ID after aggregation (shouldn't happen)
+                    primary_entity_id = next(iter(aggregated_entities.keys()), None)
+            else:
+                primary_entity_id = None  # No entities to update, no primary ID
 
             # 2. Perform Batch Update for Structured Data
             if entities_to_update:

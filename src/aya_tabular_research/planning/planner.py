@@ -36,6 +36,9 @@ PlannerSignal = Union[
 ]
 
 # Constants for prioritization logic
+
+# Strategic review thresholds are now instance attributes (_obstacle_threshold, _confidence_threshold)
+
 CONFIDENCE_THRESHOLD = 0.7
 LOW_CONFIDENCE_BOOST = 2.0  # Use float
 PROPOSAL_BOOST = 1.0  # Use float
@@ -62,18 +65,37 @@ class Planner:
     Handles completion checks and requests for user clarification when blocked.
     """
 
-    def __init__(self, knowledge_base: KnowledgeBase):
+    def __init__(
+        self,
+        knowledge_base: KnowledgeBase,
+        obstacle_threshold: float = 0.5,
+        confidence_threshold: float = 0.6,
+        stagnation_cycles: int = 3,  # Add stagnation threshold
+    ):
         """
         Initializes the Planner.
 
         Args:
             knowledge_base: An instance conforming to the KnowledgeBase interface.
+            obstacle_threshold: Ratio of entities with obstacles to trigger review.
+            confidence_threshold: Average confidence level below which to trigger review.
+            stagnation_cycles: Number of cycles without change to trigger stagnation review.
         """
         if not isinstance(knowledge_base, KnowledgeBase):
             raise TypeError("knowledge_base must be an instance of KnowledgeBase")
         self._kb = knowledge_base
         self._task_definition: Optional[TaskDefinition] = None
-        logger.info("Planner initialized.")
+        self._obstacle_threshold = obstacle_threshold
+        self._confidence_threshold = confidence_threshold
+        self._stagnation_cycles_threshold = stagnation_cycles
+        # Stagnation tracking state
+        self._stagnation_counter: int = 0
+        self._last_incomplete_set: Optional[set[str]] = None
+        logger.info(
+            f"Planner initialized with Obstacle Threshold: {self._obstacle_threshold}, "
+            f"Confidence Threshold: {self._confidence_threshold}, "
+            f"Stagnation Cycles: {self._stagnation_cycles_threshold}"
+        )
 
     def set_task_definition(self, task_definition: TaskDefinition):
         """Stores the task definition, providing context for planning."""
@@ -488,6 +510,77 @@ class Planner:
             ) from e
 
         logger.debug(f"Planner: KB Summary: {kb_summary}")
+
+        # --- Priority 0: Check for Strategic Review Triggers ---
+        entity_count = kb_summary.get("entity_count", 0)
+        if entity_count > 0:  # Only check triggers if there are entities
+            try:
+                # Check Obstacle Threshold
+                entities_with_obstacles = (
+                    self._kb.get_entities_with_active_obstacles()
+                )  # <-- KB Read
+                obstacle_ratio = len(entities_with_obstacles) / entity_count
+                if obstacle_ratio >= self._obstacle_threshold:
+                    logger.warning(
+                        f"Planner: Obstacle threshold met ({obstacle_ratio:.2f} >= {self._obstacle_threshold}). Triggering Strategic Review."
+                    )
+                    return ("NEEDS_STRATEGIC_REVIEW", "critical_obstacles")
+
+                # Check Confidence Threshold
+                avg_confidence = self._kb.get_average_confidence()  # <-- KB Read
+                if (
+                    avg_confidence is not None
+                    and avg_confidence < self._confidence_threshold
+                ):
+                    logger.warning(
+                        f"Planner: Average confidence threshold met ({avg_confidence:.2f} < {self._confidence_threshold}). Triggering Strategic Review."
+                    )
+                    return ("NEEDS_STRATEGIC_REVIEW", "low_confidence")
+
+                # Check Stagnation
+                current_incomplete_set = set(
+                    self._kb.find_incomplete_entities(
+                        self._task_definition.target_columns
+                    )
+                )  # <-- KB Read
+                if (
+                    self._last_incomplete_set is not None
+                    and current_incomplete_set == self._last_incomplete_set
+                ):
+                    self._stagnation_counter += 1
+                    logger.debug(
+                        f"Planner: Incomplete set unchanged. Stagnation counter: {self._stagnation_counter}"
+                    )
+                else:
+                    logger.debug(
+                        "Planner: Incomplete set changed or first check. Resetting stagnation counter."
+                    )
+                    self._stagnation_counter = 0
+                    self._last_incomplete_set = current_incomplete_set
+
+                if self._stagnation_counter >= self._stagnation_cycles_threshold:
+                    logger.warning(
+                        f"Planner: Stagnation threshold met ({self._stagnation_counter} >= {self._stagnation_cycles_threshold}). Triggering Strategic Review."
+                    )
+                    # Reset counter after triggering review to avoid immediate re-trigger
+                    self._stagnation_counter = 0
+                    self._last_incomplete_set = None  # Reset last set as well
+                    return ("NEEDS_STRATEGIC_REVIEW", "stagnation")
+
+            except KBInteractionError as kbe:
+                logger.error(
+                    f"KB interaction failed during strategic review checks: {kbe}",
+                    exc_info=True,
+                )
+                # Decide how to handle - proceed with standard planning or raise?
+                # Proceeding might be safer to avoid getting stuck.
+            except Exception as e:
+                logger.error(
+                    f"Unexpected error during strategic review checks: {e}",
+                    exc_info=True,
+                )
+                # Proceed with standard planning
+
         # --- Priority 1: Client Overrides (if assessment provided) ---
         if client_assessment:
             logger.debug(f"Processing with client assessment: {client_assessment}")
