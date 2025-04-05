@@ -464,11 +464,14 @@ class TabularKnowledgeBase(KnowledgeBase):
 
     # --- End Methods for Retrieving Richer Data / Context ---
 
-    def get_entity_profile(self, entity_id: str) -> Optional[Dict[str, Any]]:
+    def get_entity_profile(
+        self, entity_id: str
+    ) -> Optional[Union[Dict[str, Any], List[Dict[str, Any]]]]:
         """
         Retrieves entity data from the DataStore. Handles single/multi-index.
-        For MultiIndex, returns the first row's data as a dictionary.
-        Internal columns contain Python objects.
+        For MultiIndex, returns a list of dictionaries, one for each row.
+        For SingleIndex, returns a single dictionary.
+        Internal columns (like findings, obstacles) contain Python objects.
         """
         self._raise_if_not_ready("get_entity_profile")
         try:
@@ -479,15 +482,15 @@ class TabularKnowledgeBase(KnowledgeBase):
             if entity_data is None:
                 return None
             elif isinstance(entity_data, pd.DataFrame):
-                # MultiIndex case: return the first row as a dict
+                # MultiIndex case: return list of dictionaries
                 if not entity_data.empty:
                     # Convert potential NaNs/NaTs to None before dict conversion
-                    first_row_series = entity_data.iloc[0]
-                    return first_row_series.where(
-                        pd.notna(first_row_series), None
-                    ).to_dict()
+                    # Use where across the DataFrame before converting
+                    return entity_data.where(pd.notna(entity_data), None).to_dict(
+                        orient="records"
+                    )
                 else:
-                    return None  # Empty DataFrame slice means no data for this ID
+                    return []  # Return empty list for empty DataFrame slice
             elif isinstance(entity_data, dict):
                 # Single index case: already a dict
                 return entity_data

@@ -280,7 +280,7 @@ class TabularStore(DataStore):
             # Create DataFrame from processed data and set the correct index
             updates_df = pd.DataFrame(processed_entities)
             # Important: Ensure index columns have compatible types with the main DataFrame index
-            for i, col in enumerate(self._index_columns):
+            for _, col in enumerate(self._index_columns):
                 if col in updates_df.columns and col in self._df.index.names:
                     target_dtype = self._df.index.get_level_values(col).dtype
                     if updates_df[col].dtype != target_dtype:
@@ -387,74 +387,71 @@ class TabularStore(DataStore):
                             f"Identifier column '{self._identifier_column}' not found in index. Cannot apply feedback updates."
                         )
                     else:
-                        # Need to get the identifier value for each row being updated
+                        # --- Refactored Feedback Update Logic ---
+                        logger.debug(
+                            f"Applying feedback updates for {len(existing_ids)} existing rows using vectorized approach."
+                        )
+
+                        # 1. Get the last feedback values from the batch per entity_id
                         if is_multi_index:
-                            ids_to_update = existing_entities_df.index.get_level_values(
+                            last_feedback_map = (
+                                existing_entities_df[feedback_cols_to_update]
+                                .groupby(level=identifier_level_name, sort=False)
+                                .last()
+                            )
+                        else:  # Single index
+                            # Need to handle potential duplicate index entries in the batch explicitly
+                            last_feedback_map = existing_entities_df[
+                                ~existing_entities_df.index.duplicated(keep="last")
+                            ][feedback_cols_to_update]
+
+                        # 2. Map these values to the target rows in the main DataFrame
+                        target_rows = self._df.loc[
+                            existing_ids
+                        ]  # Select the rows to update in self._df
+
+                        if is_multi_index:
+                            target_identifiers = target_rows.index.get_level_values(
                                 identifier_level_name
-                            ).unique()
-                        else:
-                            ids_to_update = existing_entities_df.index.unique()
+                            )
+                        else:  # Single index
+                            target_identifiers = target_rows.index
 
-                        for entity_id in ids_to_update:
-                            # Find the last row in the batch for this entity_id
-                            if is_multi_index:
-                                # Select rows from the update batch matching the current entity_id
-                                entity_updates = existing_entities_df[
-                                    existing_entities_df.index.get_level_values(
-                                        identifier_level_name
-                                    )
-                                    == entity_id
-                                ]
-                                if not entity_updates.empty:
-                                    last_row_for_entity = entity_updates.iloc[-1]
-                                else:
-                                    continue  # Should not happen if entity_id came from existing_entities_df index
-                            else:
-                                # Use .loc for single index, ensure it's treated as Series/Row
-                                if entity_id in existing_entities_df.index:
-                                    last_row_for_entity = existing_entities_df.loc[
-                                        entity_id
-                                    ]
-                                    # If .loc returns a DataFrame (multiple rows with same single index?), take last
-                                    if isinstance(last_row_for_entity, pd.DataFrame):
-                                        last_row_for_entity = last_row_for_entity.iloc[
-                                            -1
-                                        ]
-                                else:
-                                    continue  # Should not happen
-
-                            last_feedback = last_row_for_entity[
-                                feedback_cols_to_update
-                            ].dropna()
-
-                            if not last_feedback.empty:
-                                logger.debug(
-                                    f"Applying feedback updates for entity '{entity_id}': {last_feedback.to_dict()}"
+                        # 3. Apply updates column by column
+                        for fb_col in feedback_cols_to_update:
+                            if fb_col not in self._df.columns:
+                                logger.warning(
+                                    f"Feedback column '{fb_col}' not found in main DataFrame. Skipping update."
                                 )
+                                continue
+                            if fb_col not in last_feedback_map.columns:
+                                logger.warning(
+                                    f"Feedback column '{fb_col}' not found in batch's last values. Skipping update."
+                                )
+                                continue
 
-                                # Select rows in the main DataFrame matching the entity_id
-                                if is_multi_index:
-                                    entity_rows_mask = (
-                                        self._df.index.get_level_values(
-                                            identifier_level_name
-                                        )
-                                        == entity_id
-                                    )
-                                else:  # Single index case
-                                    entity_rows_mask = self._df.index == entity_id
+                            # Create the mapping series
+                            update_values = target_identifiers.map(
+                                last_feedback_map[fb_col]
+                            )
 
-                                # Apply update using .loc to broadcast the value
-                                for fb_col, fb_value in last_feedback.items():
-                                    if fb_col in self._df.columns:
-                                        # Use .loc with boolean mask for setting values
-                                        self._df.loc[entity_rows_mask, fb_col] = (
-                                            fb_value
-                                        )
-                                    else:
-                                        logger.warning(
-                                            f"Feedback column '{fb_col}' not found in main DataFrame. Skipping update for entity '{entity_id}'."
-                                        )
-
+                            # Apply the update only where the mapped value is not NaN
+                            # (handles cases where an entity_id in self._df might not have had a feedback update in the batch)
+                            valid_updates_mask = update_values.notna()
+                            if valid_updates_mask.any():
+                                # Use .loc with the original index slice (existing_ids) and the mask derived from mapped values
+                                # Ensure the update_values series is aligned with the target slice index
+                                self._df.loc[
+                                    target_rows.index[valid_updates_mask], fb_col
+                                ] = update_values[valid_updates_mask]
+                                logger.debug(
+                                    f"Applied updates for feedback column '{fb_col}' to {valid_updates_mask.sum()} rows."
+                                )
+                            else:
+                                logger.debug(
+                                    f"No valid updates found for feedback column '{fb_col}'."
+                                )
+                        # --- End Refactored Logic ---
                 updated_count = len(
                     existing_entities_df
                 )  # Count based on unique index rows updated

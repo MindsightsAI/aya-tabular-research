@@ -270,19 +270,81 @@ class ReportHandler:
 
                         # Check for empty lists which would lead to no combinations
                         if any(not v for v in list_col_values):
+                            # Find which specific list(s) were empty
+                            empty_cols = [
+                                name
+                                for name, val_list in zip(
+                                    list_col_names, list_col_values, strict=True
+                                )
+                                if not val_list
+                            ]
                             logger.warning(
-                                f"Skipping data point at index {idx} for entity '{current_entity_id}' due to empty list in granularity columns: {list_col_names}"
+                                f"Skipping data point at index {idx} for entity '{current_entity_id}' due to empty list in index column(s): {empty_cols}"
                             )
                             malformed_count += 1
                             continue
+
+                        # --- Pre-expansion Type Validation ---
+                        skip_datapoint_due_type = False
+                        try:
+                            # Check if the underlying datastore and its index are ready for dtype checks
+                            if (
+                                self._kb._data_store._df is not None
+                                and self._kb._data_store._df.index.nlevels > 0
+                            ):
+                                for col_name, values_list in list_cols_data.items():
+                                    if col_name in self._kb._data_store._df.index.names:
+                                        target_dtype = self._kb._data_store._df.index.get_level_values(
+                                            col_name
+                                        ).dtype
+                                        # Basic check: if target is numeric, ensure list items are numeric (or convertible)
+                                        # Allow None/NaN as they are checked later during combination iteration
+                                        if pd.api.types.is_numeric_dtype(target_dtype):
+                                            if not all(
+                                                isinstance(v, (int, float))
+                                                or pd.api.types.is_number(v)
+                                                or pd.isnull(v)
+                                                for v in values_list
+                                            ):
+                                                logger.warning(
+                                                    f"Skipping data point at index {idx} for entity '{current_entity_id}': Non-numeric value found in list for numeric index column '{col_name}'."
+                                                )
+                                                skip_datapoint_due_type = True
+                                                break
+                                        # Add more specific checks if needed (e.g., for datetime, string length)
+                                    else:
+                                        # This case should ideally not happen if index_cols is accurate
+                                        logger.warning(
+                                            f"Index column '{col_name}' used for expansion not found in DataStore index names during type check."
+                                        )
+
+                        except (AttributeError, TypeError) as type_val_err:
+                            # Handle cases where _data_store or _df might not be fully initialized yet for dtype checks,
+                            # or attributes are not of the expected type.
+                            logger.warning(
+                                f"Could not perform pre-expansion type validation due to state/type issue: {type_val_err}. DataStore state insufficient or invalid."
+                            )
+                        except Exception as e:
+                            logger.error(
+                                f"Error during pre-expansion type validation for data point {idx}: {e}",
+                                exc_info=True,
+                            )
+                            # Decide if this should halt processing or just warn - warning for now
+                            # skip_datapoint_due_type = True # Uncomment to skip on error
+
+                        if skip_datapoint_due_type:
+                            malformed_count += 1
+                            continue
+                        # --- End Pre-expansion Type Validation ---
 
                         for value_combination in itertools.product(*list_col_values):
                             new_record = record_template.copy()
                             valid_combination = True
                             for i, col_name in enumerate(list_col_names):
                                 if pd.isnull(value_combination[i]):
+                                    # Enhanced logging for null value skip
                                     logger.warning(
-                                        f"Skipping expanded record for entity '{current_entity_id}' due to null value in index column '{col_name}'. Combination: {value_combination}"
+                                        f"Skipping expanded record for entity '{current_entity_id}' due to null value encountered for index column '{col_name}'. Combination: {value_combination}"
                                     )
                                     valid_combination = False
                                     malformed_count += 1
