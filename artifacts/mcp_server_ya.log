@@ -1,0 +1,771 @@
+2025-04-06 04:41:47,713 [INFO] [aya_tabular_research.server] - Starting aya-guided-inquiry-server v0.4.3...
+2025-04-06 04:41:47,714 [INFO] [aya_tabular_research.storage.tabular_store] - TabularStore initialized.
+2025-04-06 04:41:47,715 [INFO] [aya_tabular_research.storage.knowledge_base] - TabularKnowledgeBase initialized.
+2025-04-06 04:41:47,718 [INFO] [aya_tabular_research.core.state_manager] - StateManager initialized. Initial status: AWAITING_TASK_DEFINITION (Stateless Mode)
+2025-04-06 04:41:47,721 [INFO] [aya_tabular_research.planning.planner] - Planner initialized with Obstacle Threshold: 0.5, Confidence Threshold: 0.6, Stagnation Cycles: 3
+2025-04-06 04:41:47,724 [INFO] [aya_tabular_research.execution.instruction_builder] - DirectiveBuilder initialized.
+2025-04-06 04:41:47,725 [INFO] [aya_tabular_research.execution.report_handler] - ReportHandler initialized (Synchronous Mode).
+2025-04-06 04:41:47,727 [INFO] [aya_tabular_research.server] - AppContext initialized with components and original notifier.
+2025-04-06 04:41:47,729 [DEBUG] [aya_tabular_research.server] - Assigned component instances to core.instances.
+2025-04-06 04:41:47,731 [INFO] [aya_tabular_research.server] - Server started in stateless mode. Initial state: AWAITING_TASK_DEFINITION.
+2025-04-06 04:48:05,087 [INFO] [aya_tabular_research.mcp_handlers.tool_handlers] - Tool 'handle_define_task' called.
+2025-04-06 04:48:05,088 [INFO] [aya_tabular_research.core.state_manager] - Task definition stored in StateManager.
+2025-04-06 04:48:05,089 [INFO] [aya_tabular_research.storage.knowledge_base] - Initializing Knowledge Base...
+2025-04-06 04:48:05,090 [INFO] [aya_tabular_research.storage.tabular_store] - Initializing TabularStore with user columns: ['Country', 'Business Units', 'TAM', 'CAGR', 'Internet Penetration (%)']
+2025-04-06 04:48:05,092 [INFO] [aya_tabular_research.storage.tabular_store] - Using granularity columns for index: ['Country']
+2025-04-06 04:48:05,109 [INFO] [aya_tabular_research.storage.tabular_store] - TabularStore initialized successfully with index ['Country'] and columns: ['Business Units', 'CAGR', 'Country', 'Internet Penetration (%)', 'TAM', '_confidence_score', '_identified_obstacles', '_proposed_next_steps', '_summary_narrative', '_synthesized_findings']
+2025-04-06 04:48:05,111 [INFO] [aya_tabular_research.storage.knowledge_base] - Knowledge Base initialized successfully.
+2025-04-06 04:48:05,113 [INFO] [aya_tabular_research.core.state_manager] - Transitioning state from AWAITING_TASK_DEFINITION -> AWAITING_DIRECTIVE
+2025-04-06 04:48:05,114 [DEBUG] [aya_tabular_research.core.state_manager] - State transitioned to AWAITING_DIRECTIVE. Notification sending removed.
+2025-04-06 04:48:05,115 [INFO] [aya_tabular_research.planning.planner] - Task definition set in Planner.
+2025-04-06 04:48:05,116 [INFO] [aya_tabular_research.mcp_handlers.tool_handlers] - Task defined successfully. New status: AWAITING_DIRECTIVE
+2025-04-06 04:48:05,117 [DEBUG] [aya_tabular_research.mcp_handlers.tool_handlers] - Planning the first directive after task definition.
+2025-04-06 04:48:05,119 [DEBUG] [aya_tabular_research.planning.planner] - Planner: KB Summary: {'initialized': True, 'entity_count': 0, 'row_count': 0, 'columns': ['Business Units', 'CAGR', 'Country', 'Internet Penetration (%)', 'TAM', '_confidence_score', '_identified_obstacles', '_proposed_next_steps', '_summary_narrative', '_synthesized_findings'], 'user_columns': ['Country', 'Business Units', 'TAM', 'CAGR', 'Internet Penetration (%)'], 'identifier_column': 'Country', 'index_columns': ['Country'], 'non_null_counts': {'Business Units': 0, 'CAGR': 0, 'Country': 0, 'Internet Penetration (%)': 0, 'TAM': 0, '_confidence_score': 0, '_identified_obstacles': 0, '_proposed_next_steps': 0, '_summary_narrative': 0, '_synthesized_findings': 0}, 'ready': True}
+2025-04-06 04:48:05,122 [DEBUG] [aya_tabular_research.planning.planner] - Planner: No specific client phase guidance, proceeding with default logic.
+2025-04-06 04:48:05,123 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Defaulting to discovery (KB empty).
+2025-04-06 04:48:05,125 [INFO] [aya_tabular_research.planning.planner] - Planner: Planning Discovery Directive.
+2025-04-06 04:48:05,126 [DEBUG] [aya_tabular_research.execution.instruction_builder] - Building DISCOVERY directive.
+2025-04-06 04:48:05,127 [DEBUG] [aya_tabular_research.execution.instruction_builder] - Set discovery reporting guidelines, required points: ['Country']
+2025-04-06 04:48:05,128 [INFO] [aya_tabular_research.execution.instruction_builder] - Built DISCOVERY instruction instr_848e62a5 for focus: 'Action: Discover initial entities relevant to the task.'
+2025-04-06 04:48:05,129 [DEBUG] [aya_tabular_research.core.state_manager] - Active instruction set: instr_848e62a5 at 2025-04-06T02:48:05.129820+00:00
+2025-04-06 04:48:05,131 [INFO] [aya_tabular_research.core.state_manager] - Transitioning state from AWAITING_DIRECTIVE -> CONDUCTING_INQUIRY
+2025-04-06 04:48:05,132 [DEBUG] [aya_tabular_research.core.state_manager] - State transitioned to CONDUCTING_INQUIRY. Notification sending removed.
+2025-04-06 04:48:05,133 [INFO] [aya_tabular_research.mcp_handlers.tool_handlers] - Issuing first instruction instr_848e62a5
+2025-04-06 04:48:20,773 [INFO] [aya_tabular_research.mcp_handlers.tool_handlers] - Tool 'handle_submit_inquiry_report' called.
+2025-04-06 04:48:20,774 [INFO] [aya_tabular_research.execution.report_handler] - PROCESS_REPORT: START processing report synchronously for instruction ID: instr_848e62a5
+2025-04-06 04:48:20,775 [INFO] [aya_tabular_research.execution.report_handler] - Processing report for DISCOVERY directive: instr_848e62a5
+2025-04-06 04:48:20,776 [DEBUG] [aya_tabular_research.execution.report_handler] - Validating report against schema: ['Country']
+2025-04-06 04:48:20,782 [DEBUG] [aya_tabular_research.execution.report_handler] - Schema validation passed (or only missing required fields) for data point at index 13.
+2025-04-06 04:48:20,783 [DEBUG] [aya_tabular_research.execution.report_handler] - Schema validation checks completed for all data points.
+2025-04-06 04:48:20,784 [INFO] [aya_tabular_research.execution.report_handler] - PROCESS_REPORT: Report validation successful for instruction: instr_848e62a5
+2025-04-06 04:48:20,785 [DEBUG] [aya_tabular_research.execution.report_handler] - Starting synchronous KB update for instruction: instr_848e62a5
+2025-04-06 04:48:20,785 [DEBUG] [aya_tabular_research.execution.report_handler] - DEBUG: Processing data point 0: {'Country': 'Russia'}
+2025-04-06 04:48:20,786 [DEBUG] [aya_tabular_research.execution.report_handler] - DEBUG: Processing data point 1: {'Country': 'Belarus'}
+2025-04-06 04:48:20,787 [DEBUG] [aya_tabular_research.execution.report_handler] - DEBUG: Processing data point 2: {'Country': 'Kazakhstan'}
+2025-04-06 04:48:20,788 [DEBUG] [aya_tabular_research.execution.report_handler] - DEBUG: Processing data point 3: {'Country': 'Turkey'}
+2025-04-06 04:48:20,789 [DEBUG] [aya_tabular_research.execution.report_handler] - DEBUG: Processing data point 4: {'Country': 'Israel'}
+2025-04-06 04:48:20,790 [DEBUG] [aya_tabular_research.execution.report_handler] - DEBUG: Processing data point 5: {'Country': 'Uzbekistan'}
+2025-04-06 04:48:20,791 [DEBUG] [aya_tabular_research.execution.report_handler] - DEBUG: Processing data point 6: {'Country': 'Finland'}
+2025-04-06 04:48:20,792 [DEBUG] [aya_tabular_research.execution.report_handler] - DEBUG: Processing data point 7: {'Country': 'Switzerland'}
+2025-04-06 04:48:20,793 [DEBUG] [aya_tabular_research.execution.report_handler] - DEBUG: Processing data point 8: {'Country': 'Netherlands'}
+2025-04-06 04:48:20,794 [DEBUG] [aya_tabular_research.execution.report_handler] - DEBUG: Processing data point 9: {'Country': 'USA'}
+2025-04-06 04:48:20,795 [DEBUG] [aya_tabular_research.execution.report_handler] - DEBUG: Processing data point 10: {'Country': 'China'}
+2025-04-06 04:48:20,796 [DEBUG] [aya_tabular_research.execution.report_handler] - DEBUG: Processing data point 11: {'Country': 'Other CIS Countries'}
+2025-04-06 04:48:20,797 [DEBUG] [aya_tabular_research.execution.report_handler] - DEBUG: Processing data point 12: {'Country': 'Other EMEA Countries'}
+2025-04-06 04:48:20,798 [DEBUG] [aya_tabular_research.execution.report_handler] - DEBUG: Processing data point 13: {'Country': 'Middle East Region'}
+2025-04-06 04:48:20,799 [DEBUG] [aya_tabular_research.storage.tabular_store] - Starting batch_add_or_update for 14 entities.
+2025-04-06 04:48:20,802 [DEBUG] [aya_tabular_research.storage.tabular_store] - Adding 14 new entities in batch.
+2025-04-06 04:48:20,805 [INFO] [aya_tabular_research.storage.tabular_store] - batch_add_or_update complete. Added: 14, Updated: 0, Malformed/Skipped: 0
+2025-04-06 04:48:20,806 [INFO] [aya_tabular_research.execution.report_handler] - KB Update: Submitted 14 entities/rows for batch update (Instruction: instr_848e62a5).
+2025-04-06 04:48:20,807 [DEBUG] [aya_tabular_research.execution.report_handler] - KB Update: Storing richer report data against primary entity 'Russia' (Instruction: instr_848e62a5)
+2025-04-06 04:48:20,808 [DEBUG] [aya_tabular_research.storage.tabular_store] - Starting batch_add_or_update for 1 entities.
+2025-04-06 04:48:20,811 [DEBUG] [aya_tabular_research.storage.tabular_store] - Updating 1 existing entities in batch.
+2025-04-06 04:48:20,814 [DEBUG] [aya_tabular_research.storage.tabular_store] - Applying feedback updates for 1 existing rows using vectorized approach.
+2025-04-06 04:48:20,816 [DEBUG] [aya_tabular_research.storage.tabular_store] - Applied updates for feedback column '_summary_narrative' to 1 rows.
+2025-04-06 04:48:20,817 [INFO] [aya_tabular_research.storage.tabular_store] - batch_add_or_update complete. Added: 0, Updated: 1, Malformed/Skipped: 0
+2025-04-06 04:48:20,818 [DEBUG] [aya_tabular_research.storage.knowledge_base] - Stored _summary_narrative for entity 'Russia'.
+2025-04-06 04:48:20,819 [DEBUG] [aya_tabular_research.storage.tabular_store] - Starting batch_add_or_update for 1 entities.
+2025-04-06 04:48:20,821 [DEBUG] [aya_tabular_research.storage.tabular_store] - Updating 1 existing entities in batch.
+2025-04-06 04:48:20,824 [DEBUG] [aya_tabular_research.storage.tabular_store] - Applying feedback updates for 1 existing rows using vectorized approach.
+2025-04-06 04:48:20,826 [DEBUG] [aya_tabular_research.storage.tabular_store] - Applied updates for feedback column '_confidence_score' to 1 rows.
+2025-04-06 04:48:20,827 [INFO] [aya_tabular_research.storage.tabular_store] - batch_add_or_update complete. Added: 0, Updated: 1, Malformed/Skipped: 0
+2025-04-06 04:48:20,828 [DEBUG] [aya_tabular_research.storage.knowledge_base] - Stored _confidence_score for entity 'Russia'.
+2025-04-06 04:48:20,829 [INFO] [aya_tabular_research.execution.report_handler] - Synchronous KB update finished for instruction: instr_848e62a5
+2025-04-06 04:48:20,830 [INFO] [aya_tabular_research.execution.report_handler] - PROCESS_REPORT: KB update successful for instruction: instr_848e62a5
+2025-04-06 04:48:20,831 [DEBUG] [aya_tabular_research.execution.report_handler] - PROCESS_REPORT: Entering StateManager signal block for instruction instr_848e62a5
+2025-04-06 04:48:20,832 [DEBUG] [aya_tabular_research.execution.report_handler] - PROCESS_REPORT: Calling state_manager.report_received with status COMPLETED
+2025-04-06 04:48:20,833 [INFO] [aya_tabular_research.core.state_manager] - Report outcome received for instruction instr_848e62a5. Client status: COMPLETED
+2025-04-06 04:48:20,834 [INFO] [aya_tabular_research.core.state_manager] - Report processed. Determined next state: AWAITING_DIRECTIVE. Last directive type was: None
+2025-04-06 04:48:20,835 [INFO] [aya_tabular_research.core.state_manager] - Transitioning state from CONDUCTING_INQUIRY -> AWAITING_DIRECTIVE
+2025-04-06 04:48:20,836 [DEBUG] [aya_tabular_research.core.state_manager] - Clearing active instruction instr_848e62a5 and start time.
+2025-04-06 04:48:20,837 [DEBUG] [aya_tabular_research.core.state_manager] - State transitioned to AWAITING_DIRECTIVE. Notification sending removed.
+2025-04-06 04:48:20,838 [INFO] [aya_tabular_research.execution.report_handler] - PROCESS_REPORT: Successfully signaled report received to StateManager. Client status: COMPLETED
+2025-04-06 04:48:20,839 [DEBUG] [aya_tabular_research.mcp_handlers.tool_handlers] - Report processed, planning next directive.
+2025-04-06 04:48:20,841 [DEBUG] [aya_tabular_research.planning.planner] - Planner: KB Summary: {'initialized': True, 'entity_count': 14, 'row_count': 14, 'columns': ['Business Units', 'CAGR', 'Country', 'Internet Penetration (%)', 'TAM', '_confidence_score', '_identified_obstacles', '_proposed_next_steps', '_summary_narrative', '_synthesized_findings'], 'user_columns': ['Country', 'Business Units', 'TAM', 'CAGR', 'Internet Penetration (%)'], 'identifier_column': 'Country', 'index_columns': ['Country'], 'non_null_counts': {'Business Units': 0, 'CAGR': 0, 'Country': 14, 'Internet Penetration (%)': 0, 'TAM': 0, '_confidence_score': 1, '_identified_obstacles': 0, '_proposed_next_steps': 0, '_summary_narrative': 1, '_synthesized_findings': 0}, 'ready': True}
+2025-04-06 04:48:20,846 [DEBUG] [aya_tabular_research.storage.tabular_store] - Found 14 entities with rows lacking one or more attributes: ['Business Units', 'TAM', 'CAGR', 'Internet Penetration (%)'].
+2025-04-06 04:48:20,847 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Incomplete set changed or first check. Resetting stagnation counter.
+2025-04-06 04:48:20,849 [DEBUG] [aya_tabular_research.planning.planner] - Planner: No specific client phase guidance, proceeding with default logic.
+2025-04-06 04:48:20,850 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Defaulting to enrichment planning.
+2025-04-06 04:48:20,850 [DEBUG] [aya_tabular_research.planning.planner] - Planner: KB not empty, proceeding with enrichment planning.
+2025-04-06 04:48:20,852 [DEBUG] [aya_tabular_research.storage.tabular_store] - Found 14 entities with rows lacking one or more attributes: ['Business Units', 'TAM', 'CAGR', 'Internet Penetration (%)'].
+2025-04-06 04:48:20,854 [INFO] [aya_tabular_research.planning.planner] - Planner: Found 14 incomplete entities: ['Russia', 'Belarus', 'Kazakhstan', 'Turkey', 'Israel', 'Uzbekistan', 'Finland', 'Switzerland', 'Netherlands', 'USA', 'China', 'Other CIS Countries', 'Other EMEA Countries', 'Middle East Region']
+2025-04-06 04:48:20,856 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'Russia' for enrichment.
+2025-04-06 04:48:20,858 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'Belarus' for enrichment.
+2025-04-06 04:48:20,860 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'Kazakhstan' for enrichment.
+2025-04-06 04:48:20,861 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'Turkey' for enrichment.
+2025-04-06 04:48:20,863 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'Israel' for enrichment.
+2025-04-06 04:48:20,864 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'Uzbekistan' for enrichment.
+2025-04-06 04:48:20,865 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'Finland' for enrichment.
+2025-04-06 04:48:20,867 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'Switzerland' for enrichment.
+2025-04-06 04:48:20,869 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'Netherlands' for enrichment.
+2025-04-06 04:48:20,870 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'USA' for enrichment.
+2025-04-06 04:48:20,871 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'China' for enrichment.
+2025-04-06 04:48:20,873 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'Other CIS Countries' for enrichment.
+2025-04-06 04:48:20,875 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'Other EMEA Countries' for enrichment.
+2025-04-06 04:48:20,876 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'Middle East Region' for enrichment.
+2025-04-06 04:48:20,878 [INFO] [aya_tabular_research.planning.planner] - Planner: Evaluated candidates. Viable: 14, Blocked: 0 ([])
+2025-04-06 04:48:20,879 [INFO] [aya_tabular_research.planning.planner] - Planner: Selected entity 'Russia' (Priority: 0.00) for next enrichment inquiry.
+2025-04-06 04:48:20,880 [INFO] [aya_tabular_research.planning.planner] - Planner: Selected candidate: Russia
+2025-04-06 04:48:20,881 [DEBUG] [aya_tabular_research.planning.planner] - Extracted proposals: None
+2025-04-06 04:48:20,882 [INFO] [aya_tabular_research.planning.planner] - Planner: Enrichment directive for 'Russia': Focus on ['CAGR', 'Internet Penetration (%)', 'TAM', 'Business Units']
+2025-04-06 04:48:20,883 [DEBUG] [aya_tabular_research.execution.instruction_builder] - Building ENRICH directive for target: Russia
+2025-04-06 04:48:20,884 [DEBUG] [aya_tabular_research.execution.instruction_builder] - Fetching profile for entity 'Russia' for enrichment context.
+2025-04-06 04:48:20,885 [DEBUG] [aya_tabular_research.execution.instruction_builder] - Set enrichment reporting guidelines, required points: ['CAGR', 'Internet Penetration (%)', 'TAM', 'Business Units']
+2025-04-06 04:48:20,886 [INFO] [aya_tabular_research.execution.instruction_builder] - Built ENRICH instruction instr_af1fc93c for focus: 'Action: Enrich entity 'Russia''
+2025-04-06 04:48:20,887 [DEBUG] [aya_tabular_research.core.state_manager] - Active instruction set: instr_af1fc93c at 2025-04-06T02:48:20.887940+00:00
+2025-04-06 04:48:20,889 [INFO] [aya_tabular_research.core.state_manager] - Transitioning state from AWAITING_DIRECTIVE -> CONDUCTING_INQUIRY
+2025-04-06 04:48:20,889 [DEBUG] [aya_tabular_research.core.state_manager] - State transitioned to CONDUCTING_INQUIRY. Notification sending removed.
+2025-04-06 04:48:20,890 [INFO] [aya_tabular_research.mcp_handlers.tool_handlers] - Issuing next directive: instr_af1fc93c
+2025-04-06 04:48:20,891 [INFO] [aya_tabular_research.mcp_handlers.tool_handlers] - RETURN_DEBUG: Final next_directive_payload before return: {
+  "instruction_id": "instr_af1fc93c",
+  "research_goal_context": "Research Yandex business units based on SEC filings, identify their countries of operation, and find the TAM, CAGR, and internet penetration for each country.",
+  "inquiry_focus": "Action: Enrich entity 'Russia'",
+  "focus_areas": [
+    "CAGR",
+    "Internet Penetration (%)",
+    "TAM",
+    "Business Units"
+  ],
+  "reporting_guidelines": {
+    "required_schema_points": [
+      "CAGR",
+      "Internet Penetration (%)",
+      "TAM",
+      "Business Units"
+    ],
+    "narrative_summary_required": true
+  },
+  "allowed_tools": [
+    "research/submit_inquiry_report"
+  ],
+  "directive_type": "ENRICHMENT",
+  "target_entity_id": "Russia",
+  "directive_context": {
+    "Business Units": null,
+    "CAGR": null,
+    "Country": "Russia",
+    "Internet Penetration (%)": null,
+    "TAM": null,
+    "_confidence_score": 0.85,
+    "_identified_obstacles": null,
+    "_proposed_next_steps": null,
+    "_summary_narrative": "Initial discovery based on Yandex 2021 20-F SEC filing identified Russia as the core market and several other countries/regions with specific operations mentioned (Belarus, Kazakhstan, Turkey, Israel, Uzbekistan, Finland, Switzerland, Netherlands, USA, China, CIS, EMEA, Middle East). The filing mentions operations in 28 countries outside Russia, but a full list was not explicitly provided.",
+    "_synthesized_findings": null
+  }
+}
+2025-04-06 04:48:20,896 [INFO] [aya_tabular_research.mcp_handlers.tool_handlers] - FINAL RETURN STATE: result_status=directive_issued, has_payload=True
+2025-04-06 04:48:20,897 [DEBUG] [aya_tabular_research.mcp_handlers.tool_handlers] - FINAL RETURN PAYLOAD: {
+  "instruction_id": "instr_af1fc93c",
+  "research_goal_context": "Research Yandex business units based on SEC filings, identify their countries of operation, and find the TAM, CAGR, and internet penetration for each country.",
+  "inquiry_focus": "Action: Enrich entity 'Russia'",
+  "focus_areas": [
+    "CAGR",
+    "Internet Penetration (%)",
+    "TAM",
+    "Business Units"
+  ],
+  "reporting_guidelines": {
+    "required_schema_points": [
+      "CAGR",
+      "Internet Penetration (%)",
+      "TAM",
+      "Business Units"
+    ],
+    "narrative_summary_required": true
+  },
+  "allowed_tools": [
+    "research/submit_inquiry_report"
+  ],
+  "directive_type": "ENRICHMENT",
+  "target_entity_id": "Russia",
+  "directive_context": {
+    "Business Units": null,
+    "CAGR": null,
+    "Country": "Russia",
+    "Internet Penetration (%)": null,
+    "TAM": null,
+    "_confidence_score": 0.85,
+    "_identified_obstacles": null,
+    "_proposed_next_steps": null,
+    "_summary_narrative": "Initial discovery based on Yandex 2021 20-F SEC filing identified Russia as the core market and several other countries/regions with specific operations mentioned (Belarus, Kazakhstan, Turkey, Israel, Uzbekistan, Finland, Switzerland, Netherlands, USA, China, CIS, EMEA, Middle East). The filing mentions operations in 28 countries outside Russia, but a full list was not explicitly provided.",
+    "_synthesized_findings": null
+  }
+}
+2025-04-06 04:48:36,247 [INFO] [aya_tabular_research.mcp_handlers.tool_handlers] - Tool 'handle_submit_inquiry_report' called.
+2025-04-06 04:48:36,248 [INFO] [aya_tabular_research.execution.report_handler] - PROCESS_REPORT: START processing report synchronously for instruction ID: instr_af1fc93c
+2025-04-06 04:48:36,249 [INFO] [aya_tabular_research.execution.report_handler] - Processing report for ENRICHMENT directive: instr_af1fc93c
+2025-04-06 04:48:36,250 [DEBUG] [aya_tabular_research.execution.report_handler] - Validating report against schema: ['CAGR', 'Internet Penetration (%)', 'TAM', 'Business Units']
+2025-04-06 04:48:36,252 [DEBUG] [aya_tabular_research.execution.report_handler] - Schema validation passed (or only missing required fields) for data point at index 0.
+2025-04-06 04:48:36,253 [DEBUG] [aya_tabular_research.execution.report_handler] - Schema validation checks completed for all data points.
+2025-04-06 04:48:36,254 [INFO] [aya_tabular_research.execution.report_handler] - PROCESS_REPORT: Report validation successful for instruction: instr_af1fc93c
+2025-04-06 04:48:36,256 [DEBUG] [aya_tabular_research.execution.report_handler] - Starting synchronous KB update for instruction: instr_af1fc93c
+2025-04-06 04:48:36,257 [DEBUG] [aya_tabular_research.execution.report_handler] - DEBUG: Processing data point 0: {'Country': 'Russia', 'Business Units': 'Search/Portal, Ride-hailing, Yandex Drive, FoodTech (Eats, Lavka), Delivery, Yandex Market, Media Services, Classifieds, Zen, Yandex Cloud, SDG, Education, Devices, FinTech, Uslugi', 'Internet Penetration (%)': 89, 'TAM': 'See Narrative', 'CAGR': 'See Narrative'}
+2025-04-06 04:48:36,259 [DEBUG] [aya_tabular_research.storage.tabular_store] - Starting batch_add_or_update for 1 entities.
+2025-04-06 04:48:36,263 [DEBUG] [aya_tabular_research.storage.tabular_store] - Updating 1 existing entities in batch.
+2025-04-06 04:48:36,268 [INFO] [aya_tabular_research.storage.tabular_store] - batch_add_or_update complete. Added: 0, Updated: 1, Malformed/Skipped: 0
+2025-04-06 04:48:36,269 [INFO] [aya_tabular_research.execution.report_handler] - KB Update: Submitted 1 entities/rows for batch update (Instruction: instr_af1fc93c).
+2025-04-06 04:48:36,271 [DEBUG] [aya_tabular_research.execution.report_handler] - KB Update: Storing richer report data against primary entity 'Russia' (Instruction: instr_af1fc93c)
+2025-04-06 04:48:36,272 [DEBUG] [aya_tabular_research.storage.tabular_store] - Starting batch_add_or_update for 1 entities.
+2025-04-06 04:48:36,275 [DEBUG] [aya_tabular_research.storage.tabular_store] - Updating 1 existing entities in batch.
+2025-04-06 04:48:36,278 [DEBUG] [aya_tabular_research.storage.tabular_store] - Applying feedback updates for 1 existing rows using vectorized approach.
+2025-04-06 04:48:36,280 [DEBUG] [aya_tabular_research.storage.tabular_store] - Applied updates for feedback column '_summary_narrative' to 1 rows.
+2025-04-06 04:48:36,282 [INFO] [aya_tabular_research.storage.tabular_store] - batch_add_or_update complete. Added: 0, Updated: 1, Malformed/Skipped: 0
+2025-04-06 04:48:36,283 [DEBUG] [aya_tabular_research.storage.knowledge_base] - Stored _summary_narrative for entity 'Russia'.
+2025-04-06 04:48:36,284 [DEBUG] [aya_tabular_research.storage.tabular_store] - Starting batch_add_or_update for 1 entities.
+2025-04-06 04:48:36,287 [DEBUG] [aya_tabular_research.storage.tabular_store] - Updating 1 existing entities in batch.
+2025-04-06 04:48:36,290 [DEBUG] [aya_tabular_research.storage.tabular_store] - Applying feedback updates for 1 existing rows using vectorized approach.
+2025-04-06 04:48:36,293 [DEBUG] [aya_tabular_research.storage.tabular_store] - Applied updates for feedback column '_confidence_score' to 1 rows.
+2025-04-06 04:48:36,294 [INFO] [aya_tabular_research.storage.tabular_store] - batch_add_or_update complete. Added: 0, Updated: 1, Malformed/Skipped: 0
+2025-04-06 04:48:36,295 [DEBUG] [aya_tabular_research.storage.knowledge_base] - Stored _confidence_score for entity 'Russia'.
+2025-04-06 04:48:36,296 [INFO] [aya_tabular_research.execution.report_handler] - Synchronous KB update finished for instruction: instr_af1fc93c
+2025-04-06 04:48:36,297 [INFO] [aya_tabular_research.execution.report_handler] - PROCESS_REPORT: KB update successful for instruction: instr_af1fc93c
+2025-04-06 04:48:36,298 [DEBUG] [aya_tabular_research.execution.report_handler] - PROCESS_REPORT: Entering StateManager signal block for instruction instr_af1fc93c
+2025-04-06 04:48:36,299 [DEBUG] [aya_tabular_research.execution.report_handler] - PROCESS_REPORT: Calling state_manager.report_received with status COMPLETED
+2025-04-06 04:48:36,300 [INFO] [aya_tabular_research.core.state_manager] - Report outcome received for instruction instr_af1fc93c. Client status: COMPLETED
+2025-04-06 04:48:36,301 [INFO] [aya_tabular_research.core.state_manager] - Report processed. Determined next state: AWAITING_DIRECTIVE. Last directive type was: None
+2025-04-06 04:48:36,302 [INFO] [aya_tabular_research.core.state_manager] - Transitioning state from CONDUCTING_INQUIRY -> AWAITING_DIRECTIVE
+2025-04-06 04:48:36,303 [DEBUG] [aya_tabular_research.core.state_manager] - Clearing active instruction instr_af1fc93c and start time.
+2025-04-06 04:48:36,304 [DEBUG] [aya_tabular_research.core.state_manager] - State transitioned to AWAITING_DIRECTIVE. Notification sending removed.
+2025-04-06 04:48:36,305 [INFO] [aya_tabular_research.execution.report_handler] - PROCESS_REPORT: Successfully signaled report received to StateManager. Client status: COMPLETED
+2025-04-06 04:48:36,306 [DEBUG] [aya_tabular_research.mcp_handlers.tool_handlers] - Report processed, planning next directive.
+2025-04-06 04:48:36,307 [DEBUG] [aya_tabular_research.planning.planner] - Planner: KB Summary: {'initialized': True, 'entity_count': 14, 'row_count': 14, 'columns': ['Business Units', 'CAGR', 'Country', 'Internet Penetration (%)', 'TAM', '_confidence_score', '_identified_obstacles', '_proposed_next_steps', '_summary_narrative', '_synthesized_findings'], 'user_columns': ['Country', 'Business Units', 'TAM', 'CAGR', 'Internet Penetration (%)'], 'identifier_column': 'Country', 'index_columns': ['Country'], 'non_null_counts': {'Business Units': 1, 'CAGR': 1, 'Country': 14, 'Internet Penetration (%)': 1, 'TAM': 1, '_confidence_score': 1, '_identified_obstacles': 0, '_proposed_next_steps': 0, '_summary_narrative': 1, '_synthesized_findings': 0}, 'ready': True}
+2025-04-06 04:48:36,312 [DEBUG] [aya_tabular_research.storage.tabular_store] - Found 13 entities with rows lacking one or more attributes: ['Business Units', 'TAM', 'CAGR', 'Internet Penetration (%)'].
+2025-04-06 04:48:36,313 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Incomplete set changed or first check. Resetting stagnation counter.
+2025-04-06 04:48:36,314 [DEBUG] [aya_tabular_research.planning.planner] - Planner: No specific client phase guidance, proceeding with default logic.
+2025-04-06 04:48:36,315 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Defaulting to enrichment planning.
+2025-04-06 04:48:36,316 [DEBUG] [aya_tabular_research.planning.planner] - Planner: KB not empty, proceeding with enrichment planning.
+2025-04-06 04:48:36,318 [DEBUG] [aya_tabular_research.storage.tabular_store] - Found 13 entities with rows lacking one or more attributes: ['Business Units', 'TAM', 'CAGR', 'Internet Penetration (%)'].
+2025-04-06 04:48:36,320 [INFO] [aya_tabular_research.planning.planner] - Planner: Found 13 incomplete entities: ['Belarus', 'Kazakhstan', 'Turkey', 'Israel', 'Uzbekistan', 'Finland', 'Switzerland', 'Netherlands', 'USA', 'China', 'Other CIS Countries', 'Other EMEA Countries', 'Middle East Region']
+2025-04-06 04:48:36,321 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'Belarus' for enrichment.
+2025-04-06 04:48:36,324 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'Kazakhstan' for enrichment.
+2025-04-06 04:48:36,326 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'Turkey' for enrichment.
+2025-04-06 04:48:36,327 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'Israel' for enrichment.
+2025-04-06 04:48:36,329 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'Uzbekistan' for enrichment.
+2025-04-06 04:48:36,330 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'Finland' for enrichment.
+2025-04-06 04:48:36,332 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'Switzerland' for enrichment.
+2025-04-06 04:48:36,333 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'Netherlands' for enrichment.
+2025-04-06 04:48:36,335 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'USA' for enrichment.
+2025-04-06 04:48:36,336 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'China' for enrichment.
+2025-04-06 04:48:36,338 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'Other CIS Countries' for enrichment.
+2025-04-06 04:48:36,339 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'Other EMEA Countries' for enrichment.
+2025-04-06 04:48:36,341 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'Middle East Region' for enrichment.
+2025-04-06 04:48:36,342 [INFO] [aya_tabular_research.planning.planner] - Planner: Evaluated candidates. Viable: 13, Blocked: 0 ([])
+2025-04-06 04:48:36,344 [INFO] [aya_tabular_research.planning.planner] - Planner: Selected entity 'Belarus' (Priority: 0.00) for next enrichment inquiry.
+2025-04-06 04:48:36,345 [INFO] [aya_tabular_research.planning.planner] - Planner: Selected candidate: Belarus
+2025-04-06 04:48:36,346 [DEBUG] [aya_tabular_research.planning.planner] - Extracted proposals: None
+2025-04-06 04:48:36,346 [INFO] [aya_tabular_research.planning.planner] - Planner: Enrichment directive for 'Belarus': Focus on ['CAGR', 'Internet Penetration (%)', 'TAM', 'Business Units']
+2025-04-06 04:48:36,348 [DEBUG] [aya_tabular_research.execution.instruction_builder] - Building ENRICH directive for target: Belarus
+2025-04-06 04:48:36,349 [DEBUG] [aya_tabular_research.execution.instruction_builder] - Fetching profile for entity 'Belarus' for enrichment context.
+2025-04-06 04:48:36,350 [DEBUG] [aya_tabular_research.execution.instruction_builder] - Set enrichment reporting guidelines, required points: ['CAGR', 'Internet Penetration (%)', 'TAM', 'Business Units']
+2025-04-06 04:48:36,352 [INFO] [aya_tabular_research.execution.instruction_builder] - Built ENRICH instruction instr_0d35f0d7 for focus: 'Action: Enrich entity 'Belarus''
+2025-04-06 04:48:36,353 [DEBUG] [aya_tabular_research.core.state_manager] - Active instruction set: instr_0d35f0d7 at 2025-04-06T02:48:36.353055+00:00
+2025-04-06 04:48:36,354 [INFO] [aya_tabular_research.core.state_manager] - Transitioning state from AWAITING_DIRECTIVE -> CONDUCTING_INQUIRY
+2025-04-06 04:48:36,355 [DEBUG] [aya_tabular_research.core.state_manager] - State transitioned to CONDUCTING_INQUIRY. Notification sending removed.
+2025-04-06 04:48:36,356 [INFO] [aya_tabular_research.mcp_handlers.tool_handlers] - Issuing next directive: instr_0d35f0d7
+2025-04-06 04:48:36,356 [INFO] [aya_tabular_research.mcp_handlers.tool_handlers] - RETURN_DEBUG: Final next_directive_payload before return: {
+  "instruction_id": "instr_0d35f0d7",
+  "research_goal_context": "Research Yandex business units based on SEC filings, identify their countries of operation, and find the TAM, CAGR, and internet penetration for each country.",
+  "inquiry_focus": "Action: Enrich entity 'Belarus'",
+  "focus_areas": [
+    "CAGR",
+    "Internet Penetration (%)",
+    "TAM",
+    "Business Units"
+  ],
+  "reporting_guidelines": {
+    "required_schema_points": [
+      "CAGR",
+      "Internet Penetration (%)",
+      "TAM",
+      "Business Units"
+    ],
+    "narrative_summary_required": true
+  },
+  "allowed_tools": [
+    "research/submit_inquiry_report"
+  ],
+  "directive_type": "ENRICHMENT",
+  "target_entity_id": "Belarus",
+  "directive_context": {
+    "Business Units": null,
+    "CAGR": null,
+    "Country": "Belarus",
+    "Internet Penetration (%)": null,
+    "TAM": null,
+    "_confidence_score": null,
+    "_identified_obstacles": null,
+    "_proposed_next_steps": null,
+    "_summary_narrative": null,
+    "_synthesized_findings": null
+  }
+}
+2025-04-06 04:48:36,360 [INFO] [aya_tabular_research.mcp_handlers.tool_handlers] - FINAL RETURN STATE: result_status=directive_issued, has_payload=True
+2025-04-06 04:48:36,361 [DEBUG] [aya_tabular_research.mcp_handlers.tool_handlers] - FINAL RETURN PAYLOAD: {
+  "instruction_id": "instr_0d35f0d7",
+  "research_goal_context": "Research Yandex business units based on SEC filings, identify their countries of operation, and find the TAM, CAGR, and internet penetration for each country.",
+  "inquiry_focus": "Action: Enrich entity 'Belarus'",
+  "focus_areas": [
+    "CAGR",
+    "Internet Penetration (%)",
+    "TAM",
+    "Business Units"
+  ],
+  "reporting_guidelines": {
+    "required_schema_points": [
+      "CAGR",
+      "Internet Penetration (%)",
+      "TAM",
+      "Business Units"
+    ],
+    "narrative_summary_required": true
+  },
+  "allowed_tools": [
+    "research/submit_inquiry_report"
+  ],
+  "directive_type": "ENRICHMENT",
+  "target_entity_id": "Belarus",
+  "directive_context": {
+    "Business Units": null,
+    "CAGR": null,
+    "Country": "Belarus",
+    "Internet Penetration (%)": null,
+    "TAM": null,
+    "_confidence_score": null,
+    "_identified_obstacles": null,
+    "_proposed_next_steps": null,
+    "_summary_narrative": null,
+    "_synthesized_findings": null
+  }
+}
+2025-04-06 04:48:49,200 [INFO] [aya_tabular_research.mcp_handlers.tool_handlers] - Tool 'handle_submit_inquiry_report' called.
+2025-04-06 04:48:49,202 [INFO] [aya_tabular_research.execution.report_handler] - PROCESS_REPORT: START processing report synchronously for instruction ID: instr_0d35f0d7
+2025-04-06 04:48:49,204 [INFO] [aya_tabular_research.execution.report_handler] - Processing report for ENRICHMENT directive: instr_0d35f0d7
+2025-04-06 04:48:49,206 [DEBUG] [aya_tabular_research.execution.report_handler] - Validating report against schema: ['CAGR', 'Internet Penetration (%)', 'TAM', 'Business Units']
+2025-04-06 04:48:49,216 [DEBUG] [aya_tabular_research.execution.report_handler] - Schema validation passed (or only missing required fields) for data point at index 0.
+2025-04-06 04:48:49,219 [DEBUG] [aya_tabular_research.execution.report_handler] - Schema validation checks completed for all data points.
+2025-04-06 04:48:49,221 [INFO] [aya_tabular_research.execution.report_handler] - PROCESS_REPORT: Report validation successful for instruction: instr_0d35f0d7
+2025-04-06 04:48:49,223 [DEBUG] [aya_tabular_research.execution.report_handler] - Starting synchronous KB update for instruction: instr_0d35f0d7
+2025-04-06 04:48:49,225 [DEBUG] [aya_tabular_research.execution.report_handler] - DEBUG: Processing data point 0: {'Country': 'Belarus', 'Business Units': 'Search/Portal, Ride-hailing, Yandex Eats, Yandex Plus, Education, Sales Office', 'Internet Penetration (%)': 85.1, 'TAM': 'See Narrative', 'CAGR': 'See Narrative'}
+2025-04-06 04:48:49,227 [DEBUG] [aya_tabular_research.storage.tabular_store] - Starting batch_add_or_update for 1 entities.
+2025-04-06 04:48:49,240 [DEBUG] [aya_tabular_research.storage.tabular_store] - Updating 1 existing entities in batch.
+2025-04-06 04:48:49,247 [INFO] [aya_tabular_research.storage.tabular_store] - batch_add_or_update complete. Added: 0, Updated: 1, Malformed/Skipped: 0
+2025-04-06 04:48:49,248 [INFO] [aya_tabular_research.execution.report_handler] - KB Update: Submitted 1 entities/rows for batch update (Instruction: instr_0d35f0d7).
+2025-04-06 04:48:49,250 [DEBUG] [aya_tabular_research.execution.report_handler] - KB Update: Storing richer report data against primary entity 'Belarus' (Instruction: instr_0d35f0d7)
+2025-04-06 04:48:49,251 [DEBUG] [aya_tabular_research.storage.tabular_store] - Starting batch_add_or_update for 1 entities.
+2025-04-06 04:48:49,253 [DEBUG] [aya_tabular_research.storage.tabular_store] - Updating 1 existing entities in batch.
+2025-04-06 04:48:49,256 [DEBUG] [aya_tabular_research.storage.tabular_store] - Applying feedback updates for 1 existing rows using vectorized approach.
+2025-04-06 04:48:49,258 [DEBUG] [aya_tabular_research.storage.tabular_store] - Applied updates for feedback column '_summary_narrative' to 1 rows.
+2025-04-06 04:48:49,260 [INFO] [aya_tabular_research.storage.tabular_store] - batch_add_or_update complete. Added: 0, Updated: 1, Malformed/Skipped: 0
+2025-04-06 04:48:49,261 [DEBUG] [aya_tabular_research.storage.knowledge_base] - Stored _summary_narrative for entity 'Belarus'.
+2025-04-06 04:48:49,262 [DEBUG] [aya_tabular_research.storage.tabular_store] - Starting batch_add_or_update for 1 entities.
+2025-04-06 04:48:49,264 [DEBUG] [aya_tabular_research.storage.tabular_store] - Updating 1 existing entities in batch.
+2025-04-06 04:48:49,267 [DEBUG] [aya_tabular_research.storage.tabular_store] - Applying feedback updates for 1 existing rows using vectorized approach.
+2025-04-06 04:48:49,269 [DEBUG] [aya_tabular_research.storage.tabular_store] - Applied updates for feedback column '_confidence_score' to 1 rows.
+2025-04-06 04:48:49,270 [INFO] [aya_tabular_research.storage.tabular_store] - batch_add_or_update complete. Added: 0, Updated: 1, Malformed/Skipped: 0
+2025-04-06 04:48:49,271 [DEBUG] [aya_tabular_research.storage.knowledge_base] - Stored _confidence_score for entity 'Belarus'.
+2025-04-06 04:48:49,272 [INFO] [aya_tabular_research.execution.report_handler] - Synchronous KB update finished for instruction: instr_0d35f0d7
+2025-04-06 04:48:49,273 [INFO] [aya_tabular_research.execution.report_handler] - PROCESS_REPORT: KB update successful for instruction: instr_0d35f0d7
+2025-04-06 04:48:49,274 [DEBUG] [aya_tabular_research.execution.report_handler] - PROCESS_REPORT: Entering StateManager signal block for instruction instr_0d35f0d7
+2025-04-06 04:48:49,275 [DEBUG] [aya_tabular_research.execution.report_handler] - PROCESS_REPORT: Calling state_manager.report_received with status COMPLETED
+2025-04-06 04:48:49,276 [INFO] [aya_tabular_research.core.state_manager] - Report outcome received for instruction instr_0d35f0d7. Client status: COMPLETED
+2025-04-06 04:48:49,277 [INFO] [aya_tabular_research.core.state_manager] - Report processed. Determined next state: AWAITING_DIRECTIVE. Last directive type was: None
+2025-04-06 04:48:49,279 [INFO] [aya_tabular_research.core.state_manager] - Transitioning state from CONDUCTING_INQUIRY -> AWAITING_DIRECTIVE
+2025-04-06 04:48:49,280 [DEBUG] [aya_tabular_research.core.state_manager] - Clearing active instruction instr_0d35f0d7 and start time.
+2025-04-06 04:48:49,281 [DEBUG] [aya_tabular_research.core.state_manager] - State transitioned to AWAITING_DIRECTIVE. Notification sending removed.
+2025-04-06 04:48:49,282 [INFO] [aya_tabular_research.execution.report_handler] - PROCESS_REPORT: Successfully signaled report received to StateManager. Client status: COMPLETED
+2025-04-06 04:48:49,283 [DEBUG] [aya_tabular_research.mcp_handlers.tool_handlers] - Report processed, planning next directive.
+2025-04-06 04:48:49,286 [DEBUG] [aya_tabular_research.planning.planner] - Planner: KB Summary: {'initialized': True, 'entity_count': 14, 'row_count': 14, 'columns': ['Business Units', 'CAGR', 'Country', 'Internet Penetration (%)', 'TAM', '_confidence_score', '_identified_obstacles', '_proposed_next_steps', '_summary_narrative', '_synthesized_findings'], 'user_columns': ['Country', 'Business Units', 'TAM', 'CAGR', 'Internet Penetration (%)'], 'identifier_column': 'Country', 'index_columns': ['Country'], 'non_null_counts': {'Business Units': 2, 'CAGR': 2, 'Country': 14, 'Internet Penetration (%)': 2, 'TAM': 2, '_confidence_score': 2, '_identified_obstacles': 0, '_proposed_next_steps': 0, '_summary_narrative': 2, '_synthesized_findings': 0}, 'ready': True}
+2025-04-06 04:48:49,291 [DEBUG] [aya_tabular_research.storage.tabular_store] - Found 12 entities with rows lacking one or more attributes: ['Business Units', 'TAM', 'CAGR', 'Internet Penetration (%)'].
+2025-04-06 04:48:49,293 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Incomplete set changed or first check. Resetting stagnation counter.
+2025-04-06 04:48:49,294 [DEBUG] [aya_tabular_research.planning.planner] - Planner: No specific client phase guidance, proceeding with default logic.
+2025-04-06 04:48:49,295 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Defaulting to enrichment planning.
+2025-04-06 04:48:49,296 [DEBUG] [aya_tabular_research.planning.planner] - Planner: KB not empty, proceeding with enrichment planning.
+2025-04-06 04:48:49,297 [DEBUG] [aya_tabular_research.storage.tabular_store] - Found 12 entities with rows lacking one or more attributes: ['Business Units', 'TAM', 'CAGR', 'Internet Penetration (%)'].
+2025-04-06 04:48:49,299 [INFO] [aya_tabular_research.planning.planner] - Planner: Found 12 incomplete entities: ['Kazakhstan', 'Turkey', 'Israel', 'Uzbekistan', 'Finland', 'Switzerland', 'Netherlands', 'USA', 'China', 'Other CIS Countries', 'Other EMEA Countries', 'Middle East Region']
+2025-04-06 04:48:49,300 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'Kazakhstan' for enrichment.
+2025-04-06 04:48:49,302 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'Turkey' for enrichment.
+2025-04-06 04:48:49,303 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'Israel' for enrichment.
+2025-04-06 04:48:49,305 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'Uzbekistan' for enrichment.
+2025-04-06 04:48:49,306 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'Finland' for enrichment.
+2025-04-06 04:48:49,308 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'Switzerland' for enrichment.
+2025-04-06 04:48:49,309 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'Netherlands' for enrichment.
+2025-04-06 04:48:49,310 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'USA' for enrichment.
+2025-04-06 04:48:49,312 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'China' for enrichment.
+2025-04-06 04:48:49,313 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'Other CIS Countries' for enrichment.
+2025-04-06 04:48:49,314 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'Other EMEA Countries' for enrichment.
+2025-04-06 04:48:49,316 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'Middle East Region' for enrichment.
+2025-04-06 04:48:49,317 [INFO] [aya_tabular_research.planning.planner] - Planner: Evaluated candidates. Viable: 12, Blocked: 0 ([])
+2025-04-06 04:48:49,318 [INFO] [aya_tabular_research.planning.planner] - Planner: Selected entity 'Kazakhstan' (Priority: 0.00) for next enrichment inquiry.
+2025-04-06 04:48:49,319 [INFO] [aya_tabular_research.planning.planner] - Planner: Selected candidate: Kazakhstan
+2025-04-06 04:48:49,320 [DEBUG] [aya_tabular_research.planning.planner] - Extracted proposals: None
+2025-04-06 04:48:49,321 [INFO] [aya_tabular_research.planning.planner] - Planner: Enrichment directive for 'Kazakhstan': Focus on ['CAGR', 'Internet Penetration (%)', 'TAM', 'Business Units']
+2025-04-06 04:48:49,322 [DEBUG] [aya_tabular_research.execution.instruction_builder] - Building ENRICH directive for target: Kazakhstan
+2025-04-06 04:48:49,323 [DEBUG] [aya_tabular_research.execution.instruction_builder] - Fetching profile for entity 'Kazakhstan' for enrichment context.
+2025-04-06 04:48:49,324 [DEBUG] [aya_tabular_research.execution.instruction_builder] - Set enrichment reporting guidelines, required points: ['CAGR', 'Internet Penetration (%)', 'TAM', 'Business Units']
+2025-04-06 04:48:49,326 [INFO] [aya_tabular_research.execution.instruction_builder] - Built ENRICH instruction instr_cd1ed667 for focus: 'Action: Enrich entity 'Kazakhstan''
+2025-04-06 04:48:49,327 [DEBUG] [aya_tabular_research.core.state_manager] - Active instruction set: instr_cd1ed667 at 2025-04-06T02:48:49.327327+00:00
+2025-04-06 04:48:49,328 [INFO] [aya_tabular_research.core.state_manager] - Transitioning state from AWAITING_DIRECTIVE -> CONDUCTING_INQUIRY
+2025-04-06 04:48:49,329 [DEBUG] [aya_tabular_research.core.state_manager] - State transitioned to CONDUCTING_INQUIRY. Notification sending removed.
+2025-04-06 04:48:49,330 [INFO] [aya_tabular_research.mcp_handlers.tool_handlers] - Issuing next directive: instr_cd1ed667
+2025-04-06 04:48:49,331 [INFO] [aya_tabular_research.mcp_handlers.tool_handlers] - RETURN_DEBUG: Final next_directive_payload before return: {
+  "instruction_id": "instr_cd1ed667",
+  "research_goal_context": "Research Yandex business units based on SEC filings, identify their countries of operation, and find the TAM, CAGR, and internet penetration for each country.",
+  "inquiry_focus": "Action: Enrich entity 'Kazakhstan'",
+  "focus_areas": [
+    "CAGR",
+    "Internet Penetration (%)",
+    "TAM",
+    "Business Units"
+  ],
+  "reporting_guidelines": {
+    "required_schema_points": [
+      "CAGR",
+      "Internet Penetration (%)",
+      "TAM",
+      "Business Units"
+    ],
+    "narrative_summary_required": true
+  },
+  "allowed_tools": [
+    "research/submit_inquiry_report"
+  ],
+  "directive_type": "ENRICHMENT",
+  "target_entity_id": "Kazakhstan",
+  "directive_context": {
+    "Business Units": null,
+    "CAGR": null,
+    "Country": "Kazakhstan",
+    "Internet Penetration (%)": null,
+    "TAM": null,
+    "_confidence_score": null,
+    "_identified_obstacles": null,
+    "_proposed_next_steps": null,
+    "_summary_narrative": null,
+    "_synthesized_findings": null
+  }
+}
+2025-04-06 04:48:49,334 [INFO] [aya_tabular_research.mcp_handlers.tool_handlers] - FINAL RETURN STATE: result_status=directive_issued, has_payload=True
+2025-04-06 04:48:49,335 [DEBUG] [aya_tabular_research.mcp_handlers.tool_handlers] - FINAL RETURN PAYLOAD: {
+  "instruction_id": "instr_cd1ed667",
+  "research_goal_context": "Research Yandex business units based on SEC filings, identify their countries of operation, and find the TAM, CAGR, and internet penetration for each country.",
+  "inquiry_focus": "Action: Enrich entity 'Kazakhstan'",
+  "focus_areas": [
+    "CAGR",
+    "Internet Penetration (%)",
+    "TAM",
+    "Business Units"
+  ],
+  "reporting_guidelines": {
+    "required_schema_points": [
+      "CAGR",
+      "Internet Penetration (%)",
+      "TAM",
+      "Business Units"
+    ],
+    "narrative_summary_required": true
+  },
+  "allowed_tools": [
+    "research/submit_inquiry_report"
+  ],
+  "directive_type": "ENRICHMENT",
+  "target_entity_id": "Kazakhstan",
+  "directive_context": {
+    "Business Units": null,
+    "CAGR": null,
+    "Country": "Kazakhstan",
+    "Internet Penetration (%)": null,
+    "TAM": null,
+    "_confidence_score": null,
+    "_identified_obstacles": null,
+    "_proposed_next_steps": null,
+    "_summary_narrative": null,
+    "_synthesized_findings": null
+  }
+}
+2025-04-06 04:49:02,679 [INFO] [aya_tabular_research.mcp_handlers.tool_handlers] - Tool 'handle_submit_inquiry_report' called.
+2025-04-06 04:49:02,680 [INFO] [aya_tabular_research.execution.report_handler] - PROCESS_REPORT: START processing report synchronously for instruction ID: instr_cd1ed667
+2025-04-06 04:49:02,681 [INFO] [aya_tabular_research.execution.report_handler] - Processing report for ENRICHMENT directive: instr_cd1ed667
+2025-04-06 04:49:02,682 [DEBUG] [aya_tabular_research.execution.report_handler] - Validating report against schema: ['CAGR', 'Internet Penetration (%)', 'TAM', 'Business Units']
+2025-04-06 04:49:02,684 [DEBUG] [aya_tabular_research.execution.report_handler] - Schema validation passed (or only missing required fields) for data point at index 0.
+2025-04-06 04:49:02,685 [DEBUG] [aya_tabular_research.execution.report_handler] - Schema validation checks completed for all data points.
+2025-04-06 04:49:02,686 [INFO] [aya_tabular_research.execution.report_handler] - PROCESS_REPORT: Report validation successful for instruction: instr_cd1ed667
+2025-04-06 04:49:02,687 [DEBUG] [aya_tabular_research.execution.report_handler] - Starting synchronous KB update for instruction: instr_cd1ed667
+2025-04-06 04:49:02,688 [DEBUG] [aya_tabular_research.execution.report_handler] - DEBUG: Processing data point 0: {'Country': 'Kazakhstan', 'Business Units': 'Search/Portal, Ride-hailing, Yandex Eats, Yandex Afisha, Education, Sales Office, Yandex Plus, Yandex Cloud', 'Internet Penetration (%)': 85.9, 'TAM': 'See Narrative', 'CAGR': 'See Narrative'}
+2025-04-06 04:49:02,690 [DEBUG] [aya_tabular_research.storage.tabular_store] - Starting batch_add_or_update for 1 entities.
+2025-04-06 04:49:02,693 [DEBUG] [aya_tabular_research.storage.tabular_store] - Updating 1 existing entities in batch.
+2025-04-06 04:49:02,697 [INFO] [aya_tabular_research.storage.tabular_store] - batch_add_or_update complete. Added: 0, Updated: 1, Malformed/Skipped: 0
+2025-04-06 04:49:02,699 [INFO] [aya_tabular_research.execution.report_handler] - KB Update: Submitted 1 entities/rows for batch update (Instruction: instr_cd1ed667).
+2025-04-06 04:49:02,700 [DEBUG] [aya_tabular_research.execution.report_handler] - KB Update: Storing richer report data against primary entity 'Kazakhstan' (Instruction: instr_cd1ed667)
+2025-04-06 04:49:02,701 [DEBUG] [aya_tabular_research.storage.tabular_store] - Starting batch_add_or_update for 1 entities.
+2025-04-06 04:49:02,703 [DEBUG] [aya_tabular_research.storage.tabular_store] - Updating 1 existing entities in batch.
+2025-04-06 04:49:02,706 [DEBUG] [aya_tabular_research.storage.tabular_store] - Applying feedback updates for 1 existing rows using vectorized approach.
+2025-04-06 04:49:02,709 [DEBUG] [aya_tabular_research.storage.tabular_store] - Applied updates for feedback column '_summary_narrative' to 1 rows.
+2025-04-06 04:49:02,710 [INFO] [aya_tabular_research.storage.tabular_store] - batch_add_or_update complete. Added: 0, Updated: 1, Malformed/Skipped: 0
+2025-04-06 04:49:02,711 [DEBUG] [aya_tabular_research.storage.knowledge_base] - Stored _summary_narrative for entity 'Kazakhstan'.
+2025-04-06 04:49:02,712 [DEBUG] [aya_tabular_research.storage.tabular_store] - Starting batch_add_or_update for 1 entities.
+2025-04-06 04:49:02,714 [DEBUG] [aya_tabular_research.storage.tabular_store] - Updating 1 existing entities in batch.
+2025-04-06 04:49:02,717 [DEBUG] [aya_tabular_research.storage.tabular_store] - Applying feedback updates for 1 existing rows using vectorized approach.
+2025-04-06 04:49:02,719 [DEBUG] [aya_tabular_research.storage.tabular_store] - Applied updates for feedback column '_confidence_score' to 1 rows.
+2025-04-06 04:49:02,720 [INFO] [aya_tabular_research.storage.tabular_store] - batch_add_or_update complete. Added: 0, Updated: 1, Malformed/Skipped: 0
+2025-04-06 04:49:02,721 [DEBUG] [aya_tabular_research.storage.knowledge_base] - Stored _confidence_score for entity 'Kazakhstan'.
+2025-04-06 04:49:02,722 [INFO] [aya_tabular_research.execution.report_handler] - Synchronous KB update finished for instruction: instr_cd1ed667
+2025-04-06 04:49:02,723 [INFO] [aya_tabular_research.execution.report_handler] - PROCESS_REPORT: KB update successful for instruction: instr_cd1ed667
+2025-04-06 04:49:02,724 [DEBUG] [aya_tabular_research.execution.report_handler] - PROCESS_REPORT: Entering StateManager signal block for instruction instr_cd1ed667
+2025-04-06 04:49:02,725 [DEBUG] [aya_tabular_research.execution.report_handler] - PROCESS_REPORT: Calling state_manager.report_received with status COMPLETED
+2025-04-06 04:49:02,726 [INFO] [aya_tabular_research.core.state_manager] - Report outcome received for instruction instr_cd1ed667. Client status: COMPLETED
+2025-04-06 04:49:02,726 [INFO] [aya_tabular_research.core.state_manager] - Report processed. Determined next state: AWAITING_DIRECTIVE. Last directive type was: None
+2025-04-06 04:49:02,727 [INFO] [aya_tabular_research.core.state_manager] - Transitioning state from CONDUCTING_INQUIRY -> AWAITING_DIRECTIVE
+2025-04-06 04:49:02,729 [DEBUG] [aya_tabular_research.core.state_manager] - Clearing active instruction instr_cd1ed667 and start time.
+2025-04-06 04:49:02,730 [DEBUG] [aya_tabular_research.core.state_manager] - State transitioned to AWAITING_DIRECTIVE. Notification sending removed.
+2025-04-06 04:49:02,731 [INFO] [aya_tabular_research.execution.report_handler] - PROCESS_REPORT: Successfully signaled report received to StateManager. Client status: COMPLETED
+2025-04-06 04:49:02,733 [DEBUG] [aya_tabular_research.mcp_handlers.tool_handlers] - Report processed, planning next directive.
+2025-04-06 04:49:02,734 [DEBUG] [aya_tabular_research.planning.planner] - Planner: KB Summary: {'initialized': True, 'entity_count': 14, 'row_count': 14, 'columns': ['Business Units', 'CAGR', 'Country', 'Internet Penetration (%)', 'TAM', '_confidence_score', '_identified_obstacles', '_proposed_next_steps', '_summary_narrative', '_synthesized_findings'], 'user_columns': ['Country', 'Business Units', 'TAM', 'CAGR', 'Internet Penetration (%)'], 'identifier_column': 'Country', 'index_columns': ['Country'], 'non_null_counts': {'Business Units': 3, 'CAGR': 3, 'Country': 14, 'Internet Penetration (%)': 3, 'TAM': 3, '_confidence_score': 3, '_identified_obstacles': 0, '_proposed_next_steps': 0, '_summary_narrative': 3, '_synthesized_findings': 0}, 'ready': True}
+2025-04-06 04:49:02,739 [DEBUG] [aya_tabular_research.storage.tabular_store] - Found 11 entities with rows lacking one or more attributes: ['Business Units', 'TAM', 'CAGR', 'Internet Penetration (%)'].
+2025-04-06 04:49:02,740 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Incomplete set changed or first check. Resetting stagnation counter.
+2025-04-06 04:49:02,741 [DEBUG] [aya_tabular_research.planning.planner] - Planner: No specific client phase guidance, proceeding with default logic.
+2025-04-06 04:49:02,742 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Defaulting to enrichment planning.
+2025-04-06 04:49:02,743 [DEBUG] [aya_tabular_research.planning.planner] - Planner: KB not empty, proceeding with enrichment planning.
+2025-04-06 04:49:02,745 [DEBUG] [aya_tabular_research.storage.tabular_store] - Found 11 entities with rows lacking one or more attributes: ['Business Units', 'TAM', 'CAGR', 'Internet Penetration (%)'].
+2025-04-06 04:49:02,747 [INFO] [aya_tabular_research.planning.planner] - Planner: Found 11 incomplete entities: ['Turkey', 'Israel', 'Uzbekistan', 'Finland', 'Switzerland', 'Netherlands', 'USA', 'China', 'Other CIS Countries', 'Other EMEA Countries', 'Middle East Region']
+2025-04-06 04:49:02,749 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'Turkey' for enrichment.
+2025-04-06 04:49:02,750 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'Israel' for enrichment.
+2025-04-06 04:49:02,752 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'Uzbekistan' for enrichment.
+2025-04-06 04:49:02,754 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'Finland' for enrichment.
+2025-04-06 04:49:02,755 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'Switzerland' for enrichment.
+2025-04-06 04:49:02,757 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'Netherlands' for enrichment.
+2025-04-06 04:49:02,758 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'USA' for enrichment.
+2025-04-06 04:49:02,760 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'China' for enrichment.
+2025-04-06 04:49:02,762 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'Other CIS Countries' for enrichment.
+2025-04-06 04:49:02,764 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'Other EMEA Countries' for enrichment.
+2025-04-06 04:49:02,766 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'Middle East Region' for enrichment.
+2025-04-06 04:49:02,767 [INFO] [aya_tabular_research.planning.planner] - Planner: Evaluated candidates. Viable: 11, Blocked: 0 ([])
+2025-04-06 04:49:02,768 [INFO] [aya_tabular_research.planning.planner] - Planner: Selected entity 'Turkey' (Priority: 0.00) for next enrichment inquiry.
+2025-04-06 04:49:02,769 [INFO] [aya_tabular_research.planning.planner] - Planner: Selected candidate: Turkey
+2025-04-06 04:49:02,770 [DEBUG] [aya_tabular_research.planning.planner] - Extracted proposals: None
+2025-04-06 04:49:02,771 [INFO] [aya_tabular_research.planning.planner] - Planner: Enrichment directive for 'Turkey': Focus on ['CAGR', 'Internet Penetration (%)', 'TAM', 'Business Units']
+2025-04-06 04:49:02,772 [DEBUG] [aya_tabular_research.execution.instruction_builder] - Building ENRICH directive for target: Turkey
+2025-04-06 04:49:02,773 [DEBUG] [aya_tabular_research.execution.instruction_builder] - Fetching profile for entity 'Turkey' for enrichment context.
+2025-04-06 04:49:02,775 [DEBUG] [aya_tabular_research.execution.instruction_builder] - Set enrichment reporting guidelines, required points: ['CAGR', 'Internet Penetration (%)', 'TAM', 'Business Units']
+2025-04-06 04:49:02,776 [INFO] [aya_tabular_research.execution.instruction_builder] - Built ENRICH instruction instr_5ca15e3e for focus: 'Action: Enrich entity 'Turkey''
+2025-04-06 04:49:02,777 [DEBUG] [aya_tabular_research.core.state_manager] - Active instruction set: instr_5ca15e3e at 2025-04-06T02:49:02.777644+00:00
+2025-04-06 04:49:02,778 [INFO] [aya_tabular_research.core.state_manager] - Transitioning state from AWAITING_DIRECTIVE -> CONDUCTING_INQUIRY
+2025-04-06 04:49:02,779 [DEBUG] [aya_tabular_research.core.state_manager] - State transitioned to CONDUCTING_INQUIRY. Notification sending removed.
+2025-04-06 04:49:02,780 [INFO] [aya_tabular_research.mcp_handlers.tool_handlers] - Issuing next directive: instr_5ca15e3e
+2025-04-06 04:49:02,781 [INFO] [aya_tabular_research.mcp_handlers.tool_handlers] - RETURN_DEBUG: Final next_directive_payload before return: {
+  "instruction_id": "instr_5ca15e3e",
+  "research_goal_context": "Research Yandex business units based on SEC filings, identify their countries of operation, and find the TAM, CAGR, and internet penetration for each country.",
+  "inquiry_focus": "Action: Enrich entity 'Turkey'",
+  "focus_areas": [
+    "CAGR",
+    "Internet Penetration (%)",
+    "TAM",
+    "Business Units"
+  ],
+  "reporting_guidelines": {
+    "required_schema_points": [
+      "CAGR",
+      "Internet Penetration (%)",
+      "TAM",
+      "Business Units"
+    ],
+    "narrative_summary_required": true
+  },
+  "allowed_tools": [
+    "research/submit_inquiry_report"
+  ],
+  "directive_type": "ENRICHMENT",
+  "target_entity_id": "Turkey",
+  "directive_context": {
+    "Business Units": null,
+    "CAGR": null,
+    "Country": "Turkey",
+    "Internet Penetration (%)": null,
+    "TAM": null,
+    "_confidence_score": null,
+    "_identified_obstacles": null,
+    "_proposed_next_steps": null,
+    "_summary_narrative": null,
+    "_synthesized_findings": null
+  }
+}
+2025-04-06 04:49:02,785 [INFO] [aya_tabular_research.mcp_handlers.tool_handlers] - FINAL RETURN STATE: result_status=directive_issued, has_payload=True
+2025-04-06 04:49:02,787 [DEBUG] [aya_tabular_research.mcp_handlers.tool_handlers] - FINAL RETURN PAYLOAD: {
+  "instruction_id": "instr_5ca15e3e",
+  "research_goal_context": "Research Yandex business units based on SEC filings, identify their countries of operation, and find the TAM, CAGR, and internet penetration for each country.",
+  "inquiry_focus": "Action: Enrich entity 'Turkey'",
+  "focus_areas": [
+    "CAGR",
+    "Internet Penetration (%)",
+    "TAM",
+    "Business Units"
+  ],
+  "reporting_guidelines": {
+    "required_schema_points": [
+      "CAGR",
+      "Internet Penetration (%)",
+      "TAM",
+      "Business Units"
+    ],
+    "narrative_summary_required": true
+  },
+  "allowed_tools": [
+    "research/submit_inquiry_report"
+  ],
+  "directive_type": "ENRICHMENT",
+  "target_entity_id": "Turkey",
+  "directive_context": {
+    "Business Units": null,
+    "CAGR": null,
+    "Country": "Turkey",
+    "Internet Penetration (%)": null,
+    "TAM": null,
+    "_confidence_score": null,
+    "_identified_obstacles": null,
+    "_proposed_next_steps": null,
+    "_summary_narrative": null,
+    "_synthesized_findings": null
+  }
+}
+2025-04-06 04:49:12,270 [INFO] [aya_tabular_research.mcp_handlers.tool_handlers] - Tool 'handle_submit_inquiry_report' called.
+2025-04-06 04:49:12,271 [INFO] [aya_tabular_research.execution.report_handler] - PROCESS_REPORT: START processing report synchronously for instruction ID: instr_5ca15e3e
+2025-04-06 04:49:12,272 [INFO] [aya_tabular_research.execution.report_handler] - Processing report for ENRICHMENT directive: instr_5ca15e3e
+2025-04-06 04:49:12,273 [DEBUG] [aya_tabular_research.execution.report_handler] - Validating report against schema: ['CAGR', 'Internet Penetration (%)', 'TAM', 'Business Units']
+2025-04-06 04:49:12,275 [DEBUG] [aya_tabular_research.execution.report_handler] - Schema validation passed (or only missing required fields) for data point at index 0.
+2025-04-06 04:49:12,276 [DEBUG] [aya_tabular_research.execution.report_handler] - Schema validation checks completed for all data points.
+2025-04-06 04:49:12,277 [INFO] [aya_tabular_research.execution.report_handler] - PROCESS_REPORT: Report validation successful for instruction: instr_5ca15e3e
+2025-04-06 04:49:12,278 [DEBUG] [aya_tabular_research.execution.report_handler] - Starting synchronous KB update for instruction: instr_5ca15e3e
+2025-04-06 04:49:12,278 [DEBUG] [aya_tabular_research.execution.report_handler] - DEBUG: Processing data point 0: {'Country': 'Turkey', 'Business Units': 'Geolocation Services (Maps, Navigator), RouteQ (Logistics)', 'Internet Penetration (%)': 82, 'TAM': 'Not Available', 'CAGR': 'Not Available'}
+2025-04-06 04:49:12,280 [DEBUG] [aya_tabular_research.storage.tabular_store] - Starting batch_add_or_update for 1 entities.
+2025-04-06 04:49:12,283 [DEBUG] [aya_tabular_research.storage.tabular_store] - Updating 1 existing entities in batch.
+2025-04-06 04:49:12,287 [INFO] [aya_tabular_research.storage.tabular_store] - batch_add_or_update complete. Added: 0, Updated: 1, Malformed/Skipped: 0
+2025-04-06 04:49:12,289 [INFO] [aya_tabular_research.execution.report_handler] - KB Update: Submitted 1 entities/rows for batch update (Instruction: instr_5ca15e3e).
+2025-04-06 04:49:12,290 [DEBUG] [aya_tabular_research.execution.report_handler] - KB Update: Storing richer report data against primary entity 'Turkey' (Instruction: instr_5ca15e3e)
+2025-04-06 04:49:12,291 [DEBUG] [aya_tabular_research.storage.tabular_store] - Starting batch_add_or_update for 1 entities.
+2025-04-06 04:49:12,293 [DEBUG] [aya_tabular_research.storage.tabular_store] - Updating 1 existing entities in batch.
+2025-04-06 04:49:12,295 [DEBUG] [aya_tabular_research.storage.tabular_store] - Applying feedback updates for 1 existing rows using vectorized approach.
+2025-04-06 04:49:12,297 [DEBUG] [aya_tabular_research.storage.tabular_store] - Applied updates for feedback column '_summary_narrative' to 1 rows.
+2025-04-06 04:49:12,298 [INFO] [aya_tabular_research.storage.tabular_store] - batch_add_or_update complete. Added: 0, Updated: 1, Malformed/Skipped: 0
+2025-04-06 04:49:12,299 [DEBUG] [aya_tabular_research.storage.knowledge_base] - Stored _summary_narrative for entity 'Turkey'.
+2025-04-06 04:49:12,300 [DEBUG] [aya_tabular_research.storage.tabular_store] - Starting batch_add_or_update for 1 entities.
+2025-04-06 04:49:12,302 [DEBUG] [aya_tabular_research.storage.tabular_store] - Updating 1 existing entities in batch.
+2025-04-06 04:49:12,304 [DEBUG] [aya_tabular_research.storage.tabular_store] - Applying feedback updates for 1 existing rows using vectorized approach.
+2025-04-06 04:49:12,307 [DEBUG] [aya_tabular_research.storage.tabular_store] - Applied updates for feedback column '_confidence_score' to 1 rows.
+2025-04-06 04:49:12,308 [INFO] [aya_tabular_research.storage.tabular_store] - batch_add_or_update complete. Added: 0, Updated: 1, Malformed/Skipped: 0
+2025-04-06 04:49:12,309 [DEBUG] [aya_tabular_research.storage.knowledge_base] - Stored _confidence_score for entity 'Turkey'.
+2025-04-06 04:49:12,310 [INFO] [aya_tabular_research.execution.report_handler] - Synchronous KB update finished for instruction: instr_5ca15e3e
+2025-04-06 04:49:12,310 [INFO] [aya_tabular_research.execution.report_handler] - PROCESS_REPORT: KB update successful for instruction: instr_5ca15e3e
+2025-04-06 04:49:12,311 [DEBUG] [aya_tabular_research.execution.report_handler] - PROCESS_REPORT: Entering StateManager signal block for instruction instr_5ca15e3e
+2025-04-06 04:49:12,312 [DEBUG] [aya_tabular_research.execution.report_handler] - PROCESS_REPORT: Calling state_manager.report_received with status COMPLETED
+2025-04-06 04:49:12,313 [INFO] [aya_tabular_research.core.state_manager] - Report outcome received for instruction instr_5ca15e3e. Client status: COMPLETED
+2025-04-06 04:49:12,314 [INFO] [aya_tabular_research.core.state_manager] - Report processed. Determined next state: AWAITING_DIRECTIVE. Last directive type was: None
+2025-04-06 04:49:12,315 [INFO] [aya_tabular_research.core.state_manager] - Transitioning state from CONDUCTING_INQUIRY -> AWAITING_DIRECTIVE
+2025-04-06 04:49:12,316 [DEBUG] [aya_tabular_research.core.state_manager] - Clearing active instruction instr_5ca15e3e and start time.
+2025-04-06 04:49:12,317 [DEBUG] [aya_tabular_research.core.state_manager] - State transitioned to AWAITING_DIRECTIVE. Notification sending removed.
+2025-04-06 04:49:12,318 [INFO] [aya_tabular_research.execution.report_handler] - PROCESS_REPORT: Successfully signaled report received to StateManager. Client status: COMPLETED
+2025-04-06 04:49:12,319 [DEBUG] [aya_tabular_research.mcp_handlers.tool_handlers] - Report processed, planning next directive.
+2025-04-06 04:49:12,320 [DEBUG] [aya_tabular_research.planning.planner] - Planner: KB Summary: {'initialized': True, 'entity_count': 14, 'row_count': 14, 'columns': ['Business Units', 'CAGR', 'Country', 'Internet Penetration (%)', 'TAM', '_confidence_score', '_identified_obstacles', '_proposed_next_steps', '_summary_narrative', '_synthesized_findings'], 'user_columns': ['Country', 'Business Units', 'TAM', 'CAGR', 'Internet Penetration (%)'], 'identifier_column': 'Country', 'index_columns': ['Country'], 'non_null_counts': {'Business Units': 4, 'CAGR': 4, 'Country': 14, 'Internet Penetration (%)': 4, 'TAM': 4, '_confidence_score': 4, '_identified_obstacles': 0, '_proposed_next_steps': 0, '_summary_narrative': 4, '_synthesized_findings': 0}, 'ready': True}
+2025-04-06 04:49:12,324 [DEBUG] [aya_tabular_research.storage.tabular_store] - Found 10 entities with rows lacking one or more attributes: ['Business Units', 'TAM', 'CAGR', 'Internet Penetration (%)'].
+2025-04-06 04:49:12,325 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Incomplete set changed or first check. Resetting stagnation counter.
+2025-04-06 04:49:12,327 [DEBUG] [aya_tabular_research.planning.planner] - Planner: No specific client phase guidance, proceeding with default logic.
+2025-04-06 04:49:12,328 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Defaulting to enrichment planning.
+2025-04-06 04:49:12,328 [DEBUG] [aya_tabular_research.planning.planner] - Planner: KB not empty, proceeding with enrichment planning.
+2025-04-06 04:49:12,330 [DEBUG] [aya_tabular_research.storage.tabular_store] - Found 10 entities with rows lacking one or more attributes: ['Business Units', 'TAM', 'CAGR', 'Internet Penetration (%)'].
+2025-04-06 04:49:12,331 [INFO] [aya_tabular_research.planning.planner] - Planner: Found 10 incomplete entities: ['Israel', 'Uzbekistan', 'Finland', 'Switzerland', 'Netherlands', 'USA', 'China', 'Other CIS Countries', 'Other EMEA Countries', 'Middle East Region']
+2025-04-06 04:49:12,333 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'Israel' for enrichment.
+2025-04-06 04:49:12,334 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'Uzbekistan' for enrichment.
+2025-04-06 04:49:12,335 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'Finland' for enrichment.
+2025-04-06 04:49:12,337 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'Switzerland' for enrichment.
+2025-04-06 04:49:12,339 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'Netherlands' for enrichment.
+2025-04-06 04:49:12,341 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'USA' for enrichment.
+2025-04-06 04:49:12,342 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'China' for enrichment.
+2025-04-06 04:49:12,343 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'Other CIS Countries' for enrichment.
+2025-04-06 04:49:12,345 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'Other EMEA Countries' for enrichment.
+2025-04-06 04:49:12,346 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'Middle East Region' for enrichment.
+2025-04-06 04:49:12,348 [INFO] [aya_tabular_research.planning.planner] - Planner: Evaluated candidates. Viable: 10, Blocked: 0 ([])
+2025-04-06 04:49:12,349 [INFO] [aya_tabular_research.planning.planner] - Planner: Selected entity 'Israel' (Priority: 0.00) for next enrichment inquiry.
+2025-04-06 04:49:12,350 [INFO] [aya_tabular_research.planning.planner] - Planner: Selected candidate: Israel
+2025-04-06 04:49:12,351 [DEBUG] [aya_tabular_research.planning.planner] - Extracted proposals: None
+2025-04-06 04:49:12,353 [INFO] [aya_tabular_research.planning.planner] - Planner: Enrichment directive for 'Israel': Focus on ['CAGR', 'Internet Penetration (%)', 'TAM', 'Business Units']
+2025-04-06 04:49:12,354 [DEBUG] [aya_tabular_research.execution.instruction_builder] - Building ENRICH directive for target: Israel
+2025-04-06 04:49:12,355 [DEBUG] [aya_tabular_research.execution.instruction_builder] - Fetching profile for entity 'Israel' for enrichment context.
+2025-04-06 04:49:12,357 [DEBUG] [aya_tabular_research.execution.instruction_builder] - Set enrichment reporting guidelines, required points: ['CAGR', 'Internet Penetration (%)', 'TAM', 'Business Units']
+2025-04-06 04:49:12,359 [INFO] [aya_tabular_research.execution.instruction_builder] - Built ENRICH instruction instr_f63c07f0 for focus: 'Action: Enrich entity 'Israel''
+2025-04-06 04:49:12,360 [DEBUG] [aya_tabular_research.core.state_manager] - Active instruction set: instr_f63c07f0 at 2025-04-06T02:49:12.360201+00:00
+2025-04-06 04:49:12,361 [INFO] [aya_tabular_research.core.state_manager] - Transitioning state from AWAITING_DIRECTIVE -> CONDUCTING_INQUIRY
+2025-04-06 04:49:12,362 [DEBUG] [aya_tabular_research.core.state_manager] - State transitioned to CONDUCTING_INQUIRY. Notification sending removed.
+2025-04-06 04:49:12,363 [INFO] [aya_tabular_research.mcp_handlers.tool_handlers] - Issuing next directive: instr_f63c07f0
+2025-04-06 04:49:12,364 [INFO] [aya_tabular_research.mcp_handlers.tool_handlers] - RETURN_DEBUG: Final next_directive_payload before return: {
+  "instruction_id": "instr_f63c07f0",
+  "research_goal_context": "Research Yandex business units based on SEC filings, identify their countries of operation, and find the TAM, CAGR, and internet penetration for each country.",
+  "inquiry_focus": "Action: Enrich entity 'Israel'",
+  "focus_areas": [
+    "CAGR",
+    "Internet Penetration (%)",
+    "TAM",
+    "Business Units"
+  ],
+  "reporting_guidelines": {
+    "required_schema_points": [
+      "CAGR",
+      "Internet Penetration (%)",
+      "TAM",
+      "Business Units"
+    ],
+    "narrative_summary_required": true
+  },
+  "allowed_tools": [
+    "research/submit_inquiry_report"
+  ],
+  "directive_type": "ENRICHMENT",
+  "target_entity_id": "Israel",
+  "directive_context": {
+    "Business Units": null,
+    "CAGR": null,
+    "Country": "Israel",
+    "Internet Penetration (%)": null,
+    "TAM": null,
+    "_confidence_score": null,
+    "_identified_obstacles": null,
+    "_proposed_next_steps": null,
+    "_summary_narrative": null,
+    "_synthesized_findings": null
+  }
+}
+2025-04-06 04:49:12,368 [INFO] [aya_tabular_research.mcp_handlers.tool_handlers] - FINAL RETURN STATE: result_status=directive_issued, has_payload=True
+2025-04-06 04:49:12,369 [DEBUG] [aya_tabular_research.mcp_handlers.tool_handlers] - FINAL RETURN PAYLOAD: {
+  "instruction_id": "instr_f63c07f0",
+  "research_goal_context": "Research Yandex business units based on SEC filings, identify their countries of operation, and find the TAM, CAGR, and internet penetration for each country.",
+  "inquiry_focus": "Action: Enrich entity 'Israel'",
+  "focus_areas": [
+    "CAGR",
+    "Internet Penetration (%)",
+    "TAM",
+    "Business Units"
+  ],
+  "reporting_guidelines": {
+    "required_schema_points": [
+      "CAGR",
+      "Internet Penetration (%)",
+      "TAM",
+      "Business Units"
+    ],
+    "narrative_summary_required": true
+  },
+  "allowed_tools": [
+    "research/submit_inquiry_report"
+  ],
+  "directive_type": "ENRICHMENT",
+  "target_entity_id": "Israel",
+  "directive_context": {
+    "Business Units": null,
+    "CAGR": null,
+    "Country": "Israel",
+    "Internet Penetration (%)": null,
+    "TAM": null,
+    "_confidence_score": null,
+    "_identified_obstacles": null,
+    "_proposed_next_steps": null,
+    "_summary_narrative": null,
+    "_synthesized_findings": null
+  }
+}

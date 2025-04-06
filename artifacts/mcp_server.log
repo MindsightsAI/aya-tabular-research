@@ -1,0 +1,251 @@
+2025-04-06 19:21:11,028 [INFO] [aya_tabular_research.server] - Starting aya-guided-inquiry-server v0.4.3...
+2025-04-06 19:21:11,029 [INFO] [aya_tabular_research.storage.tabular_store] - TabularStore initialized.
+2025-04-06 19:21:11,029 [INFO] [aya_tabular_research.storage.knowledge_base] - TabularKnowledgeBase initialized.
+2025-04-06 19:21:11,029 [INFO] [aya_tabular_research.core.state_manager] - StateManager initialized. Initial status: AWAITING_TASK_DEFINITION (Stateless Mode)
+2025-04-06 19:21:11,029 [INFO] [aya_tabular_research.planning.planner] - Planner initialized with Obstacle Threshold: 0.5, Confidence Threshold: 0.6, Stagnation Cycles: 3
+2025-04-06 19:21:11,029 [INFO] [aya_tabular_research.execution.instruction_builder] - DirectiveBuilder initialized.
+2025-04-06 19:21:11,029 [INFO] [aya_tabular_research.execution.report_handler] - ReportHandler initialized (Synchronous Mode).
+2025-04-06 19:21:11,029 [INFO] [aya_tabular_research.server] - AppContext initialized with components.
+2025-04-06 19:21:11,029 [DEBUG] [aya_tabular_research.server] - Assigned component instances to core.instances.
+2025-04-06 19:21:11,029 [INFO] [aya_tabular_research.server] - Server started in stateless mode. Initial state: AWAITING_TASK_DEFINITION.
+2025-04-06 19:21:11,029 [DEBUG] [aya_tabular_research.server] - Lifespan context entered.
+2025-04-06 19:21:11,029 [DEBUG] [aya_tabular_research.server] - Initialization options created.
+2025-04-06 19:21:11,044 [INFO] [aya_tabular_research.server] - Listing 5 tools.
+2025-04-06 19:22:09,332 [INFO] [aya_tabular_research.server] - Received tool call: research/define_task with args: {'task_definition': {'task_description': 'Identify Yandex e-commerce products, their operating countries, and the TAM/CAGR for each country/product combination. Estimation/prediction for TAM/CAGR is acceptable.', 'columns': ['product_name', 'country', 'tam', 'cagr'], 'identifier_column': 'product_name', 'target_columns': ['tam', 'cagr'], 'granularity_columns': ['product_name', 'country'], 'hints': "Focus on Yandex's e-commerce business unit. Estimation/prediction of TAM/CAGR is acceptable. Speed is important."}}
+2025-04-06 19:22:09,332 [INFO] [aya_tabular_research.mcp_handlers.tool_handlers] - Tool 'handle_define_task' called.
+2025-04-06 19:22:09,332 [INFO] [aya_tabular_research.core.state_manager] - Task definition stored in StateManager.
+2025-04-06 19:22:09,332 [INFO] [aya_tabular_research.storage.knowledge_base] - Initializing Knowledge Base...
+2025-04-06 19:22:09,332 [INFO] [aya_tabular_research.storage.tabular_store] - Initializing TabularStore with user columns: ['product_name', 'country', 'tam', 'cagr']
+2025-04-06 19:22:09,332 [INFO] [aya_tabular_research.storage.tabular_store] - Using granularity columns for index: ['country', 'product_name']
+2025-04-06 19:22:09,337 [INFO] [aya_tabular_research.storage.tabular_store] - TabularStore initialized successfully with index ['country', 'product_name'] and columns: ['_confidence_score', '_identified_obstacles', '_proposed_next_steps', '_summary_narrative', '_synthesized_findings', 'cagr', 'country', 'product_name', 'tam']
+2025-04-06 19:22:09,337 [INFO] [aya_tabular_research.storage.knowledge_base] - Knowledge Base initialized successfully.
+2025-04-06 19:22:09,337 [INFO] [aya_tabular_research.core.state_manager] - Transitioning state from AWAITING_TASK_DEFINITION -> AWAITING_DIRECTIVE
+2025-04-06 19:22:09,337 [DEBUG] [aya_tabular_research.core.state_manager] - State transitioned to AWAITING_DIRECTIVE. Notification sending removed.
+2025-04-06 19:22:09,338 [INFO] [aya_tabular_research.planning.planner] - Task definition set in Planner.
+2025-04-06 19:22:09,338 [INFO] [aya_tabular_research.mcp_handlers.tool_handlers] - Task defined successfully. New status: AWAITING_DIRECTIVE
+2025-04-06 19:22:09,338 [DEBUG] [aya_tabular_research.mcp_handlers.tool_handlers] - Planning the first directive after task definition.
+2025-04-06 19:22:09,338 [DEBUG] [aya_tabular_research.planning.planner] - Planner: KB Summary: {'initialized': True, 'entity_count': 0, 'row_count': 0, 'columns': ['_confidence_score', '_identified_obstacles', '_proposed_next_steps', '_summary_narrative', '_synthesized_findings', 'cagr', 'country', 'product_name', 'tam'], 'user_columns': ['product_name', 'country', 'tam', 'cagr'], 'identifier_column': 'product_name', 'index_columns': ['country', 'product_name'], 'non_null_counts': {'_confidence_score': 0, '_identified_obstacles': 0, '_proposed_next_steps': 0, '_summary_narrative': 0, '_synthesized_findings': 0, 'cagr': 0, 'country': 0, 'product_name': 0, 'tam': 0}, 'ready': True}
+2025-04-06 19:22:09,338 [DEBUG] [aya_tabular_research.planning.planner] - Planner: No specific client phase guidance, proceeding with default logic.
+2025-04-06 19:22:09,338 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Defaulting to discovery (KB empty).
+2025-04-06 19:22:09,338 [INFO] [aya_tabular_research.planning.planner] - Planner: Planning Discovery Directive.
+2025-04-06 19:22:09,338 [DEBUG] [aya_tabular_research.execution.instruction_builder] - Building DISCOVERY directive.
+2025-04-06 19:22:09,338 [DEBUG] [aya_tabular_research.execution.instruction_builder] - Set discovery reporting guidelines, required points: ['product_name']
+2025-04-06 19:22:09,338 [INFO] [aya_tabular_research.execution.instruction_builder] - Built DISCOVERY instruction instr_a1e308ab for focus: 'Action: Discover initial entities relevant to the task.'
+2025-04-06 19:22:09,339 [DEBUG] [aya_tabular_research.core.state_manager] - Active instruction set: instr_a1e308ab at 2025-04-06T17:22:09.339018+00:00
+2025-04-06 19:22:09,339 [INFO] [aya_tabular_research.core.state_manager] - Transitioning state from AWAITING_DIRECTIVE -> CONDUCTING_INQUIRY
+2025-04-06 19:22:09,339 [DEBUG] [aya_tabular_research.core.state_manager] - State transitioned to CONDUCTING_INQUIRY. Notification sending removed.
+2025-04-06 19:22:09,339 [INFO] [aya_tabular_research.mcp_handlers.tool_handlers] - Issuing first instruction instr_a1e308ab
+2025-04-06 19:22:09,339 [WARNING] [aya_tabular_research.server] - Serializing complex result object for tool research/define_task to JSON.
+2025-04-06 19:22:40,141 [INFO] [aya_tabular_research.server] - Received tool call: research/submit_inquiry_report with args: {'inquiry_report': {'instruction_id': 'instr_a1e308ab', 'status': 'COMPLETED', 'structured_data_points': [{'product_name': 'Yandex.Market'}, {'product_name': 'Yandex Eats'}], 'summary_narrative': 'Identified Yandex.Market and Yandex Eats as initial e-commerce related products based on web search results.'}}
+2025-04-06 19:22:40,141 [INFO] [aya_tabular_research.mcp_handlers.tool_handlers] - Tool 'handle_submit_inquiry_report' called.
+2025-04-06 19:22:40,141 [INFO] [aya_tabular_research.execution.report_handler] - PROCESS_REPORT: START processing report synchronously for instruction ID: instr_a1e308ab
+2025-04-06 19:22:40,142 [INFO] [aya_tabular_research.execution.report_handler] - Processing report for DISCOVERY directive: instr_a1e308ab
+2025-04-06 19:22:40,142 [DEBUG] [aya_tabular_research.execution.report_handler] - Validating report against schema: ['product_name']
+2025-04-06 19:22:40,143 [DEBUG] [aya_tabular_research.execution.report_handler] - Schema validation passed (or only missing required fields) for data point at index 1.
+2025-04-06 19:22:40,143 [DEBUG] [aya_tabular_research.execution.report_handler] - Schema validation checks completed for all data points.
+2025-04-06 19:22:40,143 [INFO] [aya_tabular_research.execution.report_handler] - PROCESS_REPORT: Report validation successful for instruction: instr_a1e308ab
+2025-04-06 19:22:40,143 [DEBUG] [aya_tabular_research.execution.report_handler] - Starting synchronous KB update for instruction: instr_a1e308ab
+2025-04-06 19:22:40,143 [DEBUG] [aya_tabular_research.execution.report_handler] - DEBUG: Processing data point 0: {'product_name': 'Yandex.Market'}
+2025-04-06 19:22:40,143 [DEBUG] [aya_tabular_research.execution.report_handler] - DEBUG: Processing data point 1: {'product_name': 'Yandex Eats'}
+2025-04-06 19:22:40,143 [DEBUG] [aya_tabular_research.execution.report_handler] - Adding feedback dictionary for entity 'Yandex.Market' to batch update.
+2025-04-06 19:22:40,143 [DEBUG] [aya_tabular_research.storage.tabular_store] - Starting batch_add_or_update for 3 entities.
+2025-04-06 19:22:40,144 [DEBUG] [aya_tabular_research.storage.tabular_store] - Duplicate index (<NA>, 'Yandex.Market') found within batch. Keeping last occurrence.
+2025-04-06 19:22:40,147 [DEBUG] [aya_tabular_research.storage.tabular_store] - Processing 2 new entities for addition.
+2025-04-06 19:22:40,150 [INFO] [aya_tabular_research.storage.tabular_store] - batch_add_or_update complete. Added: 2, Updated: 0, Malformed/Skipped: 0
+2025-04-06 19:22:40,150 [INFO] [aya_tabular_research.execution.report_handler] - KB Update: Submitted 3 dictionaries (data rows + feedback) for batch update (Instruction: instr_a1e308ab).
+2025-04-06 19:22:40,150 [INFO] [aya_tabular_research.execution.report_handler] - Synchronous KB update finished for instruction: instr_a1e308ab
+2025-04-06 19:22:40,150 [INFO] [aya_tabular_research.execution.report_handler] - PROCESS_REPORT: KB update successful for instruction: instr_a1e308ab
+2025-04-06 19:22:40,150 [DEBUG] [aya_tabular_research.execution.report_handler] - PROCESS_REPORT: Entering StateManager signal block for instruction instr_a1e308ab
+2025-04-06 19:22:40,150 [DEBUG] [aya_tabular_research.execution.report_handler] - PROCESS_REPORT: Calling state_manager.report_received with status COMPLETED
+2025-04-06 19:22:40,151 [INFO] [aya_tabular_research.core.state_manager] - Report outcome received for instruction instr_a1e308ab. Client status: COMPLETED
+2025-04-06 19:22:40,151 [INFO] [aya_tabular_research.core.state_manager] - Report processed. Determined next state: AWAITING_DIRECTIVE. Last directive type was: None
+2025-04-06 19:22:40,151 [INFO] [aya_tabular_research.core.state_manager] - Transitioning state from CONDUCTING_INQUIRY -> AWAITING_DIRECTIVE
+2025-04-06 19:22:40,151 [DEBUG] [aya_tabular_research.core.state_manager] - Clearing active instruction instr_a1e308ab and start time.
+2025-04-06 19:22:40,151 [DEBUG] [aya_tabular_research.core.state_manager] - State transitioned to AWAITING_DIRECTIVE. Notification sending removed.
+2025-04-06 19:22:40,151 [INFO] [aya_tabular_research.execution.report_handler] - PROCESS_REPORT: Successfully signaled report received to StateManager. Client status: COMPLETED
+2025-04-06 19:22:40,151 [DEBUG] [aya_tabular_research.mcp_handlers.tool_handlers] - Report processed, planning next directive.
+2025-04-06 19:22:40,151 [DEBUG] [aya_tabular_research.planning.planner] - Planner: KB Summary: {'initialized': True, 'entity_count': 2, 'row_count': 2, 'columns': ['_confidence_score', '_identified_obstacles', '_proposed_next_steps', '_summary_narrative', '_synthesized_findings', 'cagr', 'country', 'product_name', 'tam'], 'user_columns': ['product_name', 'country', 'tam', 'cagr'], 'identifier_column': 'product_name', 'index_columns': ['country', 'product_name'], 'non_null_counts': {'_confidence_score': 0, '_identified_obstacles': 0, '_proposed_next_steps': 0, '_summary_narrative': 1, '_synthesized_findings': 0, 'cagr': 0, 'country': 0, 'product_name': 2, 'tam': 0}, 'ready': True}
+2025-04-06 19:22:40,153 [DEBUG] [aya_tabular_research.storage.tabular_store] - No rows with complete granularity found to check for missing attributes.
+2025-04-06 19:22:40,153 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Incomplete set changed or first check. Resetting stagnation counter.
+2025-04-06 19:22:40,153 [DEBUG] [aya_tabular_research.planning.planner] - Planner: No specific client phase guidance, proceeding with default logic.
+2025-04-06 19:22:40,153 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Defaulting to enrichment planning.
+2025-04-06 19:22:40,153 [DEBUG] [aya_tabular_research.planning.planner] - Planner: KB not empty, proceeding with enrichment planning.
+2025-04-06 19:22:40,154 [DEBUG] [aya_tabular_research.storage.tabular_store] - No rows with complete granularity found to check for missing attributes.
+2025-04-06 19:22:40,154 [INFO] [aya_tabular_research.planning.planner] - Planner: Found 0 incomplete entities: []
+2025-04-06 19:22:40,154 [INFO] [aya_tabular_research.planning.planner] - Planner: All known entities appear complete based on target attributes. Research complete.
+2025-04-06 19:22:40,154 [INFO] [aya_tabular_research.planning.planner] - Planner: No incomplete entities found. Signaling completion.
+2025-04-06 19:22:40,154 [INFO] [aya_tabular_research.planning.planner] - Planner: Default enrichment found no targets. Requesting strategic review.
+2025-04-06 19:22:40,154 [DEBUG] [aya_tabular_research.execution.instruction_builder] - Building STRATEGIC_REVIEW directive. Reason: enrichment_complete
+2025-04-06 19:22:40,155 [DEBUG] [aya_tabular_research.execution.instruction_builder] - Obstacle summary for strategic review context: []
+2025-04-06 19:22:40,156 [DEBUG] [aya_tabular_research.storage.tabular_store] - No rows with complete granularity found to check for missing attributes.
+2025-04-06 19:22:40,156 [DEBUG] [aya_tabular_research.execution.instruction_builder] - Incomplete entities for strategic review context: []
+2025-04-06 19:22:40,156 [INFO] [aya_tabular_research.execution.instruction_builder] - Built STRATEGIC_REVIEW instruction srev_fbdc6afe. Reason: enrichment_complete
+2025-04-06 19:22:40,156 [DEBUG] [aya_tabular_research.core.state_manager] - Active instruction set: srev_fbdc6afe at 2025-04-06T17:22:40.156358+00:00
+2025-04-06 19:22:40,156 [INFO] [aya_tabular_research.core.state_manager] - Transitioning state from AWAITING_DIRECTIVE -> CONDUCTING_INQUIRY
+2025-04-06 19:22:40,156 [DEBUG] [aya_tabular_research.core.state_manager] - State transitioned to CONDUCTING_INQUIRY. Notification sending removed.
+2025-04-06 19:22:40,156 [INFO] [aya_tabular_research.mcp_handlers.tool_handlers] - Issuing next directive: srev_fbdc6afe
+2025-04-06 19:22:40,156 [INFO] [aya_tabular_research.mcp_handlers.tool_handlers] - RETURN_DEBUG: Final next_directive_payload before return: {
+  "directive_id": "srev_fbdc6afe",
+  "directive_type": "STRATEGIC_REVIEW",
+  "research_goal_context": "Identify Yandex e-commerce products, their operating countries, and the TAM/CAGR for each country/product combination. Estimation/prediction for TAM/CAGR is acceptable.",
+  "review_reason": "enrichment_complete",
+  "focus_areas": [
+    "Strategic Review Triggered: enrichment_complete",
+    "Review the context provided in the associated resource (KB Summary, Obstacles).",
+    "Assess the overall research status against the goal.",
+    "Decide the next strategic phase and report it using the 'strategic_decision' field.",
+    "Options: FINALIZE, DISCOVER, ENRICH, ENRICH_SPECIFIC, CLARIFY_USER.",
+    "If choosing ENRICH_SPECIFIC, also provide 'strategic_targets'."
+  ],
+  "reporting_guidelines": {
+    "required_report_field": "strategic_decision"
+  },
+  "allowed_tools": [
+    "research/submit_inquiry_report"
+  ],
+  "strategic_context": {
+    "review_reason": "enrichment_complete",
+    "research_goal": "Identify Yandex e-commerce products, their operating countries, and the TAM/CAGR for each country/product combination. Estimation/prediction for TAM/CAGR is acceptable.",
+    "kb_summary": {
+      "initialized": true,
+      "entity_count": 2,
+      "row_count": 2,
+      "columns": [
+        "_confidence_score",
+        "_identified_obstacles",
+        "_proposed_next_steps",
+        "_summary_narrative",
+        "_synthesized_findings",
+        "cagr",
+        "country",
+        "product_name",
+        "tam"
+      ],
+      "user_columns": [
+        "product_name",
+        "country",
+        "tam",
+        "cagr"
+      ],
+      "identifier_column": "product_name",
+      "index_columns": [
+        "country",
+        "product_name"
+      ],
+      "non_null_counts": {
+        "_confidence_score": 0,
+        "_identified_obstacles": 0,
+        "_proposed_next_steps": 0,
+        "_summary_narrative": 1,
+        "_synthesized_findings": 0,
+        "cagr": 0,
+        "country": 0,
+        "product_name": 2,
+        "tam": 0
+      },
+      "ready": true
+    },
+    "obstacle_summary": [],
+    "incomplete_entities": []
+  }
+}
+2025-04-06 19:22:40,156 [INFO] [aya_tabular_research.mcp_handlers.tool_handlers] - FINAL RETURN STATE: result_status=directive_issued, has_payload=True
+2025-04-06 19:22:40,156 [DEBUG] [aya_tabular_research.mcp_handlers.tool_handlers] - FINAL RETURN PAYLOAD: {
+  "directive_id": "srev_fbdc6afe",
+  "directive_type": "STRATEGIC_REVIEW",
+  "research_goal_context": "Identify Yandex e-commerce products, their operating countries, and the TAM/CAGR for each country/product combination. Estimation/prediction for TAM/CAGR is acceptable.",
+  "review_reason": "enrichment_complete",
+  "focus_areas": [
+    "Strategic Review Triggered: enrichment_complete",
+    "Review the context provided in the associated resource (KB Summary, Obstacles).",
+    "Assess the overall research status against the goal.",
+    "Decide the next strategic phase and report it using the 'strategic_decision' field.",
+    "Options: FINALIZE, DISCOVER, ENRICH, ENRICH_SPECIFIC, CLARIFY_USER.",
+    "If choosing ENRICH_SPECIFIC, also provide 'strategic_targets'."
+  ],
+  "reporting_guidelines": {
+    "required_report_field": "strategic_decision"
+  },
+  "allowed_tools": [
+    "research/submit_inquiry_report"
+  ],
+  "strategic_context": {
+    "review_reason": "enrichment_complete",
+    "research_goal": "Identify Yandex e-commerce products, their operating countries, and the TAM/CAGR for each country/product combination. Estimation/prediction for TAM/CAGR is acceptable.",
+    "kb_summary": {
+      "initialized": true,
+      "entity_count": 2,
+      "row_count": 2,
+      "columns": [
+        "_confidence_score",
+        "_identified_obstacles",
+        "_proposed_next_steps",
+        "_summary_narrative",
+        "_synthesized_findings",
+        "cagr",
+        "country",
+        "product_name",
+        "tam"
+      ],
+      "user_columns": [
+        "product_name",
+        "country",
+        "tam",
+        "cagr"
+      ],
+      "identifier_column": "product_name",
+      "index_columns": [
+        "country",
+        "product_name"
+      ],
+      "non_null_counts": {
+        "_confidence_score": 0,
+        "_identified_obstacles": 0,
+        "_proposed_next_steps": 0,
+        "_summary_narrative": 1,
+        "_synthesized_findings": 0,
+        "cagr": 0,
+        "country": 0,
+        "product_name": 2,
+        "tam": 0
+      },
+      "ready": true
+    },
+    "obstacle_summary": [],
+    "incomplete_entities": []
+  }
+}
+2025-04-06 19:22:40,156 [WARNING] [aya_tabular_research.server] - Serializing complex result object for tool research/submit_inquiry_report to JSON.
+2025-04-06 19:24:27,787 [INFO] [aya_tabular_research.server] - Received tool call: research/submit_inquiry_report with args: {'inquiry_report': {'instruction_id': 'srev_fbdc6afe', 'status': 'COMPLETED', 'strategic_decision': 'ENRICH'}}
+2025-04-06 19:24:27,788 [INFO] [aya_tabular_research.mcp_handlers.tool_handlers] - Tool 'handle_submit_inquiry_report' called.
+2025-04-06 19:24:27,788 [INFO] [aya_tabular_research.execution.report_handler] - PROCESS_REPORT: START processing report synchronously for instruction ID: srev_fbdc6afe
+2025-04-06 19:24:27,788 [INFO] [aya_tabular_research.execution.report_handler] - Processing report for STRATEGIC_REVIEW directive: srev_fbdc6afe
+2025-04-06 19:24:27,788 [INFO] [aya_tabular_research.execution.report_handler] - Strategic Review Report validation successful. Decision: ENRICH, Targets: None
+2025-04-06 19:24:27,788 [DEBUG] [aya_tabular_research.execution.report_handler] - PROCESS_REPORT: Entering StateManager signal block for instruction srev_fbdc6afe
+2025-04-06 19:24:27,788 [DEBUG] [aya_tabular_research.execution.report_handler] - PROCESS_REPORT: Calling state_manager.report_received with status COMPLETED
+2025-04-06 19:24:27,788 [INFO] [aya_tabular_research.core.state_manager] - Report outcome received for instruction srev_fbdc6afe. Client status: COMPLETED
+2025-04-06 19:24:27,788 [INFO] [aya_tabular_research.core.state_manager] - Report processed. Determined next state: AWAITING_DIRECTIVE. Last directive type was: None
+2025-04-06 19:24:27,788 [INFO] [aya_tabular_research.core.state_manager] - Transitioning state from CONDUCTING_INQUIRY -> AWAITING_DIRECTIVE
+2025-04-06 19:24:27,788 [DEBUG] [aya_tabular_research.core.state_manager] - Clearing active instruction srev_fbdc6afe and start time.
+2025-04-06 19:24:27,788 [DEBUG] [aya_tabular_research.core.state_manager] - State transitioned to AWAITING_DIRECTIVE. Notification sending removed.
+2025-04-06 19:24:27,788 [INFO] [aya_tabular_research.execution.report_handler] - PROCESS_REPORT: Successfully signaled report received to StateManager. Client status: COMPLETED
+2025-04-06 19:24:27,788 [INFO] [aya_tabular_research.mcp_handlers.tool_handlers] - Processing client strategic decision: ENRICH
+2025-04-06 19:24:27,788 [CRITICAL] [aya_tabular_research.mcp_handlers.error_handler] - Unhandled exception during handle_submit_inquiry_report: Planner.determine_next_directive() got an unexpected keyword argument 'client_assessment'
+Traceback (most recent call last):
+  File "/home/maxbaluev/aya/src/aya_tabular_research/mcp_handlers/tool_handlers.py", line 284, in handle_submit_inquiry_report
+    planner_signal_tuple = planner.determine_next_directive(
+TypeError: Planner.determine_next_directive() got an unexpected keyword argument 'client_assessment'
+2025-04-06 19:24:27,789 [ERROR] [aya_tabular_research.server] - Error executing tool research/submit_inquiry_report: An unexpected internal server error occurred.
+Traceback (most recent call last):
+  File "/home/maxbaluev/aya/src/aya_tabular_research/mcp_handlers/tool_handlers.py", line 284, in handle_submit_inquiry_report
+    planner_signal_tuple = planner.determine_next_directive(
+TypeError: Planner.determine_next_directive() got an unexpected keyword argument 'client_assessment'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/maxbaluev/aya/src/aya_tabular_research/server.py", line 220, in handle_tool_call
+    result = await handler_func(parsed_args)  # Removed ctx
+  File "/home/maxbaluev/aya/src/aya_tabular_research/mcp_handlers/tool_handlers.py", line 426, in handle_submit_inquiry_report
+    raise handle_aya_exception(e, operation) from e
+mcp.shared.exceptions.McpError: An unexpected internal server error occurred.

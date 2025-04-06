@@ -152,7 +152,7 @@ instruction_research_state_*.parquet # Example pattern for state
 instruction_research_meta_*.json # Example pattern for metadata
 
 # Logs (if stored locally)
-*.log
+#.log
 logs/
 
 # Temporary files
