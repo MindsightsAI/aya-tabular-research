@@ -1,21 +1,50 @@
+# Imports (Lines 1-53, cleaned slightly)
 import logging
 import os
 from contextlib import asynccontextmanager
-from typing import (  # Removed Awaitable; Removed Callable
-    AsyncIterator,
-)
+from typing import AsyncIterator, Iterable, Sequence  # Keep only used types for now
 
-from mcp.server.fastmcp import FastMCP
+import anyio  # Added anyio back
+import mcp.types as types
+from mcp.server.lowlevel import Server  # Added NotificationOptions
+from mcp.server.lowlevel.helper_types import (  # Corrected import path
+    ReadResourceContents,
+)
+from mcp.server.stdio import stdio_server
+
+# from mcp.shared.context import RequestContext # Removed unused import
+from mcp.shared.exceptions import McpError  # Added McpError
+
+# Import specific content types for tool results
+from mcp.types import AnyUrl  # Added AnyUrl
+from mcp.types import (
+    EmbeddedResource,
+    ImageContent,
+    TextContent,
+)
+from pydantic import ValidationError as PydanticValidationError
 
 from .core import instances
 
-# Imports for integrated components
-from .core.state_manager import StateManager  # Removed NotifierCallback import
+# Import specific Pydantic models for schema generation
+from .core.models.research_models import (
+    DefineTaskArgs,
+    DefineTaskResult,
+    ExportResult,
+    ExportResultsArgs,
+    SubmitClarificationResult,
+    SubmitInquiryReportArgs,
+    SubmitReportAndGetDirectiveResult,
+    SubmitUserClarificationArgs,
+)
 
-# from .core.models.research_models import StateChangeNotificationParams # Remove notification model import
-from .execution.instruction_builder import DirectiveBuilder  # Renamed class
+# Imports for integrated components
+from .core.state_manager import StateManager
+from .execution.instruction_builder import DirectiveBuilder
 from .execution.report_handler import ReportHandler
-from .mcp_interface import register_mcp_handlers
+
+# Import handlers directly
+from .mcp_handlers import prompt_handlers, resource_handlers, tool_handlers
 from .planning.planner import Planner
 from .storage.knowledge_base import TabularKnowledgeBase
 from .storage.tabular_store import TabularStore
@@ -26,13 +55,13 @@ logger = logging.getLogger(__name__)
 
 # --- Constants ---
 SERVER_NAME = "aya-guided-inquiry-server"
-SERVER_VERSION = "0.4.3"  # Incremented version for status resource approach
+SERVER_VERSION = "0.4.3"
 
 
 # --- Application Context ---
 # Holds shared application resources
 class AppContext:
-    def __init__(self):  # Removed mcp_notifier
+    def __init__(self):
         # Read thresholds from environment variables with defaults
         try:
             obstacle_thresh_val = float(os.environ.get("AYA_OBSTACLE_THRESHOLD", "0.5"))
@@ -61,7 +90,7 @@ class AppContext:
             self.knowledge_base,
             obstacle_threshold=obstacle_thresh_val,
             confidence_threshold=conf_thresh_val,
-            stagnation_cycles=stagnation_cycles_val,  # Pass stagnation cycles
+            stagnation_cycles=stagnation_cycles_val,
         )
         self.directive_builder = DirectiveBuilder(self.knowledge_base)
         self.report_handler = ReportHandler(self.knowledge_base, self.state_manager)
@@ -71,48 +100,298 @@ class AppContext:
         instances.directive_builder = self.directive_builder
         instances.report_handler = self.report_handler
         instances.knowledge_base = self.knowledge_base
-        logger.info("AppContext initialized with components and original notifier.")
+        logger.info("AppContext initialized with components.")
+
+
+# --- Create MCP Server Instance ---
+server = Server(
+    SERVER_NAME,
+    version=SERVER_VERSION,
+    # Lifespan is applied around server.run() later
+)
 
 
 # --- Server Lifespan Management ---
 @asynccontextmanager
-async def app_lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
+async def app_lifespan(
+    server_instance: Server,  # Renamed arg to avoid conflict
+) -> AsyncIterator[AppContext]:
     """Manage application lifecycle: initialize resources, load state, run background tasks, save state."""
     setup_logging()
     logger.info(f"Starting {SERVER_NAME} v{SERVER_VERSION}...")
 
     # --- Initialize App Context ---
-    # Notifier callback removed
     app_context = AppContext()
     logger.debug("Assigned component instances to core.instances.")
 
-    # State is now ephemeral per instance. StateManager initializes to AWAITING_TASK_DEFINITION.
-    # KB starts empty. No loading needed.
     logger.info(
         "Server started in stateless mode. Initial state: AWAITING_TASK_DEFINITION."
     )
 
-    # --- Start Background Tasks ---
-    # Timeout checker task removed.
     try:
         yield app_context  # Server runs here
     finally:
-        # --- Stop Background Tasks ---
-        # Timeout checker task removed.
-        # No state saving needed in stateless mode.
         logger.info("Server shutting down (stateless mode).")
-
         logger.info(f"{SERVER_NAME} shutdown complete.")
 
 
-# --- Create and Configure MCP Server ---
-server = FastMCP(
-    SERVER_NAME,
-    version=SERVER_VERSION,
-    lifespan=app_lifespan,
-)
+# --- Define MCP Handlers via Decorators ---
 
-# --- Register MCP Handlers ---
-register_mcp_handlers(server)
 
-# The server is run via the mcp_server instance.
+@server.list_tools()
+async def list_server_tools() -> list[types.Tool]:
+    """Lists all tools provided by the server with their detailed input schemas."""
+    tool_list = [
+        types.Tool(
+            name="research/define_task",
+            description="Starts a new research task. Provide the overall goal, desired data structure, and optional seeds via the `task_definition` argument (see schema). Returns a confirmation (`message`, `summary`) and the *first directive* object (`InstructionObjectV3` or `StrategicReviewDirective` with embedded context) in the `instruction_payload` field to guide your next action. If `instruction_payload` is null, check the `status` field (`clarification_needed` or `research_complete`).",
+            inputSchema=DefineTaskArgs.model_json_schema(),
+        ),
+        types.Tool(
+            name="research/submit_inquiry_report",
+            description="Submit findings after executing a standard directive (`InstructionObjectV3`) OR submit a strategic decision after analyzing a `StrategicReviewDirective`. Correlate using the `instruction_id` from the directive you processed. Provide findings/decision in the `inquiry_report` argument (see schema). Returns a confirmation (`message`, `summary`) and the *next directive* object (`InstructionObjectV3` or `StrategicReviewDirective` with embedded context) in the `instruction_payload` field. If `instruction_payload` is null, check the `status` field (`clarification_needed` or `research_complete`).",
+            inputSchema=SubmitInquiryReportArgs.model_json_schema(),
+        ),
+        types.Tool(
+            name="research/submit_user_clarification",
+            description="Provide input/guidance from the human user when the server previously requested clarification. Submit the user's input via the `clarification` argument (see schema). Returns a confirmation (`message`, `summary`), the server's updated status (`new_status`), available tools (`available_tools`), and the *next directive* object (`InstructionObjectV3` or `StrategicReviewDirective` with embedded context) in the `instruction_payload` field. If `instruction_payload` is null, check the `status` field (`clarification_needed` or `research_complete`).",
+            inputSchema=SubmitUserClarificationArgs.model_json_schema(),
+        ),
+        types.Tool(
+            name="research/preview_results",
+            description="Requests a preview (e.g., first N rows) of the structured data accumulated in the server's knowledge base. Typically used when research is complete. Optionally specify row limit via `limit` argument (see schema). Returns a formatted string (e.g., markdown table) representing the data preview.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "limit": {
+                        "type": "integer",
+                        "description": "Optional number of rows to preview. Defaults to 10.",
+                        "default": 10,
+                    }
+                },
+                "required": [],
+            },  # Updated schema for optional limit
+        ),
+        types.Tool(
+            name="research/export_results",
+            description="Requests a full export of the structured data accumulated in the server's knowledge base, saved to a file on the server. Typically used when research is complete. Specify the desired output format ('csv', 'json', 'parquet') via the `format` argument (see schema). Returns an `ExportResult` object containing the server-side `file_path` of the exported data.",
+            inputSchema=ExportResultsArgs.model_json_schema(),
+        ),
+    ]
+    logger.info(f"Listing {len(tool_list)} tools.")
+    return tool_list
+
+
+@server.call_tool()
+async def handle_tool_call(
+    name: str, arguments: dict  # Removed ctx: RequestContext
+) -> Sequence[TextContent | ImageContent | EmbeddedResource]:
+    """Handles incoming tool calls, validates arguments, and dispatches to the correct handler."""
+    logger.info(f"Received tool call: {name} with args: {arguments}")
+
+    tool_map = {
+        "research/define_task": (tool_handlers.handle_define_task, DefineTaskArgs),
+        "research/submit_inquiry_report": (
+            tool_handlers.handle_submit_inquiry_report,
+            SubmitInquiryReportArgs,
+        ),
+        "research/submit_user_clarification": (
+            tool_handlers.handle_submit_user_clarification,
+            SubmitUserClarificationArgs,
+        ),
+        "research/preview_results": (tool_handlers.handle_preview_results, None),
+        "research/export_results": (
+            tool_handlers.handle_export_results,
+            ExportResultsArgs,
+        ),
+    }
+
+    if name not in tool_map:
+        logger.error(f"Unknown tool called: {name}")
+        return [types.TextContent(type="text", text=f"Error: Unknown tool '{name}'")]
+
+    handler_func, args_model = tool_map[name]
+
+    try:
+        # --- Argument Parsing ---
+        if args_model:
+            parsed_args = args_model(**arguments)
+            # TODO: Address context compatibility if handlers require FastMCP Context methods.
+            result = await handler_func(parsed_args)  # Removed ctx
+        else:
+            result = await handler_func(arguments)  # Removed ctx
+
+        # --- Result Processing ---
+        if isinstance(result, str):  # Specific handling for preview_results
+            return [types.TextContent(type="text", text=result)]
+        elif isinstance(
+            result,
+            (
+                DefineTaskResult,
+                SubmitReportAndGetDirectiveResult,
+                SubmitClarificationResult,
+                ExportResult,
+            ),
+        ):
+            logger.warning(
+                f"Serializing complex result object for tool {name} to JSON."
+            )
+            return [
+                types.TextContent(type="text", text=result.model_dump_json(indent=2))
+            ]
+        elif isinstance(result, Sequence) and all(
+            isinstance(item, (TextContent, ImageContent, EmbeddedResource))
+            for item in result
+        ):
+            return result  # Already in correct format
+        else:
+            logger.error(
+                f"Handler for tool {name} returned unexpected type: {type(result)}"
+            )
+            return [
+                types.TextContent(
+                    type="text",
+                    text=f"Error: Internal server error processing result for tool '{name}'.",
+                )
+            ]
+
+    except PydanticValidationError as e:
+        logger.error(f"Invalid arguments for tool {name}: {e}")
+        return [
+            types.TextContent(
+                type="text",
+                text=f"Error: Invalid arguments for tool '{name}':\n{str(e)}",
+            )
+        ]
+    except Exception as e:
+        logger.exception(f"Error executing tool {name}: {e}")
+        return [
+            types.TextContent(
+                type="text", text=f"Error executing tool '{name}': {str(e)}"
+            )
+        ]
+
+
+@server.read_resource()
+async def handle_read_resource(
+    uri: AnyUrl,  # Removed ctx: RequestContext
+) -> Iterable[ReadResourceContents]:
+    """Handles incoming resource read requests and dispatches to the correct handler."""
+    uri_str = str(uri)
+    logger.info(f"Received resource read request for URI: {uri_str}")
+
+    resource_map = {
+        "research://research/status": resource_handlers.get_server_status,
+        "debug://research/debug_state": resource_handlers.get_debug_state,
+    }
+    handler_func = resource_map.get(uri_str)
+
+    if not handler_func:
+        logger.error(f"Unknown resource URI requested: {uri_str}")
+        raise McpError(
+            code=types.METHOD_NOT_FOUND, message=f"Unknown resource URI: {uri_str}"
+        )
+
+    try:
+        # TODO: Address context compatibility if handlers require FastMCP Context methods.
+        result_data = await handler_func()  # Removed ctx
+
+        # Convert result to expected format
+        # Assuming handlers return Pydantic models ServerStatus or DebugState
+        if isinstance(
+            result_data, (resource_handlers.ServerStatus, resource_handlers.DebugState)
+        ):
+            json_content = result_data.model_dump_json(indent=2)
+            logger.debug(f"Returning JSON content for resource {uri_str}")
+            return [
+                ReadResourceContents(content=json_content, mime_type="application/json")
+            ]
+        else:
+            logger.error(
+                f"Handler for resource {uri_str} returned unexpected type: {type(result_data)}"
+            )
+            raise McpError(
+                code=types.INTERNAL_ERROR,
+                message=f"Internal error processing resource {uri_str}",
+            )
+
+    except Exception as e:
+        logger.exception(f"Error reading resource {uri_str}: {e}")
+        raise McpError(
+            code=types.INTERNAL_ERROR,
+            message=f"Error reading resource '{uri_str}': {str(e)}",
+        ) from e  # Add 'from e'
+
+
+@server.get_prompt()
+async def handle_get_prompt(
+    name: str, arguments: dict | None  # Removed ctx: RequestContext
+) -> types.GetPromptResult:
+    """Handles incoming get prompt requests and dispatches."""
+    logger.info(f"Received get prompt request for: {name}")
+
+    prompt_map = {
+        "research/overview": prompt_handlers.handle_overview,
+    }
+    handler_func = prompt_map.get(name)
+
+    if not handler_func:
+        logger.error(f"Unknown prompt name requested: {name}")
+        raise McpError(code=types.METHOD_NOT_FOUND, message=f"Unknown prompt: {name}")
+
+    try:
+        # TODO: Adapt if prompt handlers need specific arguments or FastMCP context.
+        result = await handler_func()  # Removed ctx
+
+        if isinstance(result, types.GetPromptResult):
+            return result
+        else:
+            logger.error(
+                f"Handler for prompt {name} returned unexpected type: {type(result)}"
+            )
+            raise McpError(
+                code=types.INTERNAL_ERROR,
+                message=f"Internal error processing prompt {name}",
+            )
+
+    except Exception as e:
+        logger.exception(f"Error getting prompt {name}: {e}")
+        raise McpError(
+            code=types.INTERNAL_ERROR,
+            message=f"Error getting prompt '{name}': {str(e)}",
+        ) from e  # Add 'from e'
+
+
+# --- Server Runner ---
+async def arun():
+    """Asynchronous function to run the MCP server."""
+    # Assuming stdio transport for now, adapt if SSE is needed
+    logger.info("Starting server with stdio transport...")
+    async with stdio_server() as streams:
+        logger.debug("Stdio streams acquired.")
+        # Wrap the run call with the lifespan manager
+        async with app_lifespan(server):  # Pass server instance to lifespan
+            logger.debug("Lifespan context entered.")
+            # Create initialization options using server capabilities
+            # We can define NotificationOptions if we want to support list_changed notifications
+            # from mcp.server.lowlevel import NotificationOptions
+            # notification_options = NotificationOptions(tools_changed=True) # Example
+            init_options = server.create_initialization_options(
+                # notification_options=notification_options, # Optional
+                # experimental_capabilities={} # Optional
+            )
+            logger.debug("Initialization options created.")
+            await server.run(streams[0], streams[1], init_options)
+            logger.debug("Server run finished.")
+
+
+if __name__ == "__main__":
+    logger.info("Starting MCP server directly...")
+    try:
+        # Setup logging before running
+        # setup_logging() # Already called inside app_lifespan
+        anyio.run(arun)
+    except KeyboardInterrupt:
+        logger.info("Server stopped by user.")
+    except Exception as main_err:
+        logger.exception(f"Server failed to run: {main_err}")

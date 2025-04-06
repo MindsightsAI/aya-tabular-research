@@ -1,41 +1,45 @@
 import uuid
-from enum import Enum  # Added import
-from typing import Any, Dict, List, Literal, Optional, Union  # Added Union
+from enum import Enum
+from typing import Any, Dict, List, Literal, Optional, Union
 
 from pydantic import BaseModel, Field, field_validator
 
 # Import necessary enums
-from .enums import DirectiveType, InquiryStatus  # Import new Enum
+from .enums import DirectiveType, InquiryStatus
 
 # --- Task Definition ---
 
 
-class TaskDefinition(BaseModel):  # Keep original TaskDefinition
-    """Defines the overall research task."""
+class TaskDefinition(BaseModel):
+    """Defines the overall research task, including goal, data structure, and optional seeds."""
 
     task_description: str = Field(
-        ..., description="Natural language goal of the research."
+        ...,
+        description="Required. Natural language description of the overall research goal or question.",
     )
     columns: List[str] = Field(
-        ..., description="List of all desired column names for the final dataset."
+        ...,
+        description="Required. List of all desired column names for the final dataset. Must be unique, non-empty, and not start with '_'. Defines the target schema.",
     )
     identifier_column: str = Field(
-        ..., description="The column name that uniquely identifies each entity/row."
+        ...,
+        description="Required. The column name that uniquely identifies each entity (e.g., company name, person ID). Must be present in the 'columns' list.",
     )
     target_columns: List[str] = Field(
         default_factory=list,
-        description="Columns that require active enrichment after initial discovery.",
+        description="Optional. Columns that require active enrichment after initial discovery. Must be a subset of 'columns' and cannot include 'identifier_column'. Defaults to empty list.",
     )
     seed_entities: Optional[List[Dict[str, Any]]] = Field(
         default_factory=list,
-        description="Optional list of initial entities (as dicts) to seed the knowledge base.",
+        description="Optional. List of initial entities (as dictionaries) to seed the knowledge base. Each dictionary should contain at least the 'identifier_column' and its value. Defaults to empty list.",
     )
     hints: Optional[str] = Field(
-        None, description="Optional hints or context for the discovery process."
+        None,
+        description="Optional. General hints, context, or constraints for the research process (e.g., 'focus on European market', 'exclude sources older than 2023'). Defaults to null.",
     )
     granularity_columns: Optional[List[str]] = Field(
         None,
-        description="Columns defining row uniqueness. Defaults to [identifier_column] if None.",
+        description="Optional. Columns defining unique data rows if finer granularity than 'identifier_column' is needed (e.g., ['company_id', 'country']). Must be a subset of 'columns' and include 'identifier_column'. Defaults to ['identifier_column'] if null.",
     )
     # Add other fields like query_guidance, context_columns later if needed
 
@@ -105,9 +109,11 @@ class TaskDefinition(BaseModel):  # Keep original TaskDefinition
 
 
 class DefineTaskArgs(BaseModel):
-    """Arguments for the research/define_task MCP tool."""
+    """Input arguments for the research/define_task MCP tool."""
 
-    task_definition: TaskDefinition
+    task_definition: TaskDefinition = Field(
+        ..., description="The detailed definition of the research task."
+    )
 
 
 # --- Instruction Object ---
@@ -244,23 +250,23 @@ class StrategicReviewDirective(BaseModel):
 
 
 class SynthesizedFinding(BaseModel):
-    """Represents a synthesized finding or insight from the client."""
+    """Represents a single synthesized finding or insight derived by the client during an inquiry cycle."""
 
     finding: str = Field(..., description="The textual description of the finding.")
     confidence: Optional[float] = Field(
         None,
         ge=0.0,
         le=1.0,
-        description="Client's confidence in the finding (0.0-1.0).",
+        description="Optional. Client's confidence in the accuracy/validity of this finding (0.0-1.0).",
     )
     evidence: List[str] = Field(
         default_factory=list,
-        description="Supporting evidence (e.g., source URIs, text snippets).",
+        description="Optional. Supporting evidence or sources for the finding (e.g., source URIs, quotes, document references).",
     )
 
 
 class IdentifiedObstacle(BaseModel):
-    """Represents an obstacle encountered by the client."""
+    """Represents a specific obstacle encountered by the client while trying to fulfill the directive."""
 
     obstacle: str = Field(..., description="Description of the obstacle.")
     details: Optional[str] = Field(
@@ -269,7 +275,7 @@ class IdentifiedObstacle(BaseModel):
 
 
 class ProposedNextStep(BaseModel):
-    """Represents a next step proposed by the client."""
+    """Represents a potential next step suggested by the client based on the inquiry cycle's outcome."""
 
     proposal: str = Field(..., description="Description of the proposed next step.")
     rationale: Optional[str] = Field(None, description="Reasoning behind the proposal.")
@@ -277,39 +283,43 @@ class ProposedNextStep(BaseModel):
 
 class InquiryReport(BaseModel):
     """
-    Represents the report submitted by the client after completing an inquiry cycle.
-    Includes fields for richer reporting (Phase 3+).
+    Report submitted by the client after executing a standard directive (InstructionObjectV3) or analyzing a strategic review directive (StrategicReviewDirective).
     """
 
     instruction_id: str = Field(
-        ..., description="The ID of the instruction this report corresponds to."
+        ...,
+        description="Required. The ID (`instruction_id` or `directive_id`) of the directive this report corresponds to.",
     )
     status: InquiryStatus = Field(
-        ..., description="Status of the inquiry execution (e.g., COMPLETED, BLOCKED)."
+        ...,
+        description="Required. Status of the inquiry execution for the corresponding directive (e.g., 'COMPLETED', 'BLOCKED', 'PARTIAL', 'FAILED').",
     )
     structured_data_points: List[Dict[str, Any]] = Field(
         default_factory=list,
-        description="List of dictionaries containing structured findings (entities/attributes). Format depends on reporting_guidelines.",
+        description="Optional. List of dictionaries containing structured findings (entities/attributes). Each dict should represent a unique data row based on the task's granularity columns. Ignored by server when responding to a StrategicReviewDirective.",
     )
     summary_narrative: Optional[str] = Field(
-        None, description="Optional narrative summary of the findings for this cycle."
+        None,
+        description="Optional. Narrative summary of the findings, process, or obstacles encountered during this cycle.",
     )
     # --- Phase 3+ Fields ---
     synthesized_findings: Optional[List[SynthesizedFinding]] = Field(
-        default_factory=list, description="List of synthesized insights or findings."
+        default_factory=list,
+        description="Optional. List of synthesized insights or higher-level findings derived during the inquiry cycle.",
     )
     identified_obstacles: Optional[List[IdentifiedObstacle]] = Field(
         default_factory=list,
-        description="List of obstacles encountered during execution.",
+        description="Optional. List of specific obstacles encountered during execution that prevented fulfilling the directive.",
     )
     proposed_next_steps: Optional[List[ProposedNextStep]] = Field(
-        default_factory=list, description="List of next steps proposed by the client."
+        default_factory=list,
+        description="Optional. List of next steps suggested by the client based on the outcome of this cycle.",
     )
     confidence_score: Optional[float] = Field(
         None,
         ge=0.0,
         le=1.0,
-        description="Overall confidence score for the reported data/findings in this cycle (0.0-1.0).",
+        description="Optional. Overall confidence score for the reported data/findings in this cycle (0.0-1.0).",
     )
     # --- End Phase 3+ Fields ---
 
@@ -318,7 +328,7 @@ class InquiryReport(BaseModel):
         Literal["FINALIZE", "DISCOVER", "ENRICH", "ENRICH_SPECIFIC", "CLARIFY_USER"]
     ] = Field(
         None,
-        description="Client's strategic decision in response to a STRATEGIC_REVIEW directive.",
+        description="Required when responding to a STRATEGIC_REVIEW directive. The client's chosen strategic direction.",
     )
     strategic_targets: Optional[List[str]] = Field(
         None,
@@ -333,18 +343,21 @@ class InquiryReport(BaseModel):
 
 
 class SubmitInquiryReportArgs(BaseModel):
-    """Arguments for the research/submit_inquiry_report MCP tool."""
+    """Input arguments for the research/submit_inquiry_report MCP tool."""
 
-    inquiry_report: InquiryReport
+    inquiry_report: InquiryReport = Field(
+        ...,
+        description="The report containing findings or strategic decisions for the completed directive.",
+    )
 
 
 # --- NEW MODEL for Phase 3 ---
 class SubmitUserClarificationArgs(BaseModel):
-    """Arguments for the research/submit_user_clarification MCP tool."""
+    """Input arguments for the research/submit_user_clarification MCP tool, used to provide user input when requested by the server."""
 
     # Simple text clarification for now, could be more structured later
     clarification: Optional[str] = Field(
-        None, description="The clarification or decision provided by the user."
+        None, description="The clarification text or guidance provided by the user."
     )
     # Potentially add fields like 'decision_type' or structured choices later
 
@@ -490,11 +503,11 @@ class ExportFormat(str, Enum):
 
 
 class ExportResultsArgs(BaseModel):
-    """Arguments for the research/export_results MCP tool."""
+    """Input arguments for the research/export_results MCP tool."""
 
     format: ExportFormat = Field(
         default=ExportFormat.CSV,
-        description="The desired file format for the export (csv, json, or parquet).",
+        description="Desired file format for the export ('csv', 'json', or 'parquet'). Defaults to 'csv'.",
     )
 
 

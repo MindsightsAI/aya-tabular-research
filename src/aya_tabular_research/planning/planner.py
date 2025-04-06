@@ -397,8 +397,8 @@ class Planner:
         if not evaluations:
             return None
 
-        # Sort by priority (descending)
-        evaluations.sort(key=lambda x: x["priority"], reverse=True)
+        # Sort by priority (descending), then by entity ID (ascending) for deterministic tie-breaking
+        evaluations.sort(key=lambda x: (-x["priority"], x["id"]))
 
         # Simple selection: pick the highest priority
         selected = evaluations[0]

@@ -1,6 +1,7 @@
 import logging
 from typing import Any, Dict, List, Optional, Union
 
+import numpy as np
 import pandas as pd
 
 # Import custom exceptions and error models
@@ -815,7 +816,17 @@ class TabularStore(DataStore):
                         non_null_values.iloc[0] if not non_null_values.empty else None
                     )
                 else:
-                    # Original logic for single value
+                    # Handle single values, checking for list/array first
+                    logger.debug(
+                        f"Checking feedback value type: {type(value)}"
+                    )  # Added log
+                    if isinstance(
+                        value, (list, tuple, np.ndarray)
+                    ):  # Check if it's list-like
+                        # Decide how to handle lists - return as is if not empty? Or check elements?
+                        # For now, assume an empty list is like None, otherwise return the list.
+                        return value if value else None
+                    # Original logic for scalar values
                     return None if pd.isna(value) else value
             else:
                 logger.debug(
@@ -1015,14 +1026,29 @@ class TabularStore(DataStore):
             return []
 
         try:
-            # Check for nulls in any of the specified columns for each row
-            missing_mask = self._df[check_cols].isnull().any(axis=1)
+            # --- Start Fix: Filter rows to only include those with complete granularity ---
+            # Identify rows where ALL index columns (granularity) are non-null
+            # This ensures we only check for missing target attributes on fully defined rows.
+            valid_granularity_mask = self._df[self._index_columns].notnull().all(axis=1)
+            df_to_check = self._df[valid_granularity_mask]
+
+            if df_to_check.empty:
+                logger.debug(
+                    "No rows with complete granularity found to check for missing attributes."
+                )
+                return []
+            # --- End Fix ---
+
+            # Check for nulls in any of the specified columns for each *valid granularity* row
+            missing_mask = df_to_check[check_cols].isnull().any(axis=1)
 
             if not missing_mask.any():
                 return []  # No rows have missing attributes in checked columns
 
             # Get the index of rows with missing attributes
-            incomplete_index = self._df[missing_mask].index
+            incomplete_index = df_to_check[
+                missing_mask
+            ].index  # Use the filtered DataFrame index
 
             # Extract unique primary entity IDs from the incomplete index
             if isinstance(incomplete_index, pd.MultiIndex):

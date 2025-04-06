@@ -6,7 +6,7 @@ from typing import Optional, Union
 
 # Third-party imports
 # import pandas as pd # Removed unused import (Pandas is used via KnowledgeBase/TabularStore)
-from mcp.server.fastmcp import Context
+# from mcp.server.fastmcp import Context # Removed unused import
 from mcp.types import INVALID_REQUEST
 from pydantic import ValidationError as PydanticValidationError
 
@@ -40,7 +40,7 @@ from .error_handler import handle_aya_exception
 logger = logging.getLogger(__name__)
 
 
-async def handle_define_task(args: DefineTaskArgs, ctx: Context) -> DefineTaskResult:
+async def handle_define_task(args: DefineTaskArgs) -> DefineTaskResult:  # Removed ctx
     """
     Defines the research scope and parameters. Requires AWAITING_TASK_DEFINITION state.
     Input: DefineTaskArgs (containing TaskDefinition).
@@ -164,7 +164,7 @@ async def handle_define_task(args: DefineTaskArgs, ctx: Context) -> DefineTaskRe
 
 
 async def handle_submit_inquiry_report(
-    args: SubmitInquiryReportArgs, ctx: Context
+    args: SubmitInquiryReportArgs,  # Removed ctx
 ) -> research_models.SubmitReportAndGetDirectiveResult:
     """
     Submits results for the active directive (standard or strategic review). Requires CONDUCTING_INQUIRY state.
@@ -427,7 +427,7 @@ async def handle_submit_inquiry_report(
 
 
 async def handle_submit_user_clarification(
-    args: SubmitUserClarificationArgs, ctx: Context
+    args: SubmitUserClarificationArgs,  # Removed ctx
 ) -> SubmitClarificationResult:
     """
     Provides user input when clarification is requested. Requires AWAITING_USER_CLARIFICATION state.
@@ -612,7 +612,7 @@ async def handle_submit_user_clarification(
 
         # Get final status and tools for the result payload
         final_status_str = state_manager.status.value
-        available_tools = state_manager.get_available_tools()
+        available_tools = state_manager.get_tools_for_state(state_manager.status)
 
         logger.debug(
             f"Final status: {final_status_str}, Available tools: {available_tools}"
@@ -632,7 +632,7 @@ async def handle_submit_user_clarification(
         raise handle_aya_exception(e, operation) from e
 
 
-async def handle_preview_results(args: dict, ctx: Context) -> str:
+async def handle_preview_results(args: dict) -> str:  # Removed ctx
     """
     Returns a preview of the current knowledge base as a formatted string (e.g., markdown table).
     Requires RESEARCH_COMPLETE state.
@@ -669,7 +669,7 @@ async def handle_preview_results(args: dict, ctx: Context) -> str:
         raise handle_aya_exception(e, operation) from e
 
 
-async def handle_export_results(args: ExportResultsArgs, ctx: Context) -> ExportResult:
+async def handle_export_results(args: ExportResultsArgs) -> ExportResult:  # Removed ctx
     """
     Exports the full knowledge base to a specified file format (CSV, JSON, Parquet).
     Requires RESEARCH_COMPLETE state.
