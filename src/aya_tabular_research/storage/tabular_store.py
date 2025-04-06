@@ -806,7 +806,17 @@ class TabularStore(DataStore):
             if column_name in first_matching_row.index:
                 value = first_matching_row[column_name]
                 # Return None if value is NaN/NaT, otherwise return the value
-                return None if pd.isna(value) else value
+                # Handle potential Series if entity has multiple rows
+                if isinstance(value, pd.Series):
+                    # Find the first non-null value in the Series for this entity
+                    non_null_values = value.dropna()
+                    # Return the first non-null item, or None if all are null
+                    return (
+                        non_null_values.iloc[0] if not non_null_values.empty else None
+                    )
+                else:
+                    # Original logic for single value
+                    return None if pd.isna(value) else value
             else:
                 logger.debug(
                     f"Column '{column_name}' not found for entity '{entity_id}' feedback."

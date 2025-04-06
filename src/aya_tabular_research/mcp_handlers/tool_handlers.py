@@ -268,36 +268,54 @@ async def handle_submit_inquiry_report(
                 "request_user_clarification": strategic_decision == "CLARIFY_USER",
                 "goal_achieved": strategic_decision == "FINALIZE",
             }
-            # Call the main planner logic, passing the client's strategic intent
-            planner_signal_tuple = planner.determine_next_directive(
-                client_assessment=client_assessment
-            )
-            # Process the planner's signal based on the client's decision
-            if planner_signal_tuple == "CLARIFICATION_NEEDED":
+            # Check if the client explicitly requested clarification
+            if strategic_decision == "CLARIFY_USER":
+                # Directly transition state without calling planner
                 await state_manager.request_clarification(
-                    "Planner requires clarification based on strategic decision outcome."
+                    "Client requested user clarification via strategic decision."
                 )
                 result_status = (
                     research_models.RequestDirectiveResultStatus.CLARIFICATION_NEEDED
                 )
-            elif planner_signal_tuple is None:
-                await state_manager.complete_research()
-                result_status = (
-                    research_models.RequestDirectiveResultStatus.RESEARCH_COMPLETE
-                )
-                # Create completion directive payload for consistency
-                next_directive_payload = InstructionObjectV3(
-                    research_goal_context=task_def.task_description,
-                    inquiry_focus="Research Complete. Please export or preview the results.",
-                    allowed_tools=[
-                        "research/preview_results",
-                        "research/export_results",
-                    ],
-                    directive_type=DirectiveType.COMPLETION,
-                )
+                # No directive payload needed when clarification is requested
+                next_directive_payload = None
             else:
-                # Planner returned a directive signal (ENRICH, DISCOVERY, NEEDS_STRATEGIC_REVIEW)
-                planner_signal = planner_signal_tuple
+                # For other decisions (ENRICH, DISCOVER, FINALIZE, etc.), call the planner
+                planner_signal_tuple = planner.determine_next_directive(
+                    client_assessment=client_assessment
+                )
+                # Process the planner's signal based on the client's decision
+                if planner_signal_tuple == "CLARIFICATION_NEEDED":
+                    # Planner determined clarification is needed even after client decision
+                    await state_manager.request_clarification(
+                        "Planner requires clarification based on strategic decision outcome."
+                    )
+                    result_status = (
+                        research_models.RequestDirectiveResultStatus.CLARIFICATION_NEEDED
+                    )
+                elif planner_signal_tuple is None:
+                    # Planner determined completion
+                    await state_manager.complete_research()
+                    result_status = (
+                        research_models.RequestDirectiveResultStatus.RESEARCH_COMPLETE
+                    )
+                    # Create completion directive payload for consistency
+                    next_directive_payload = InstructionObjectV3(
+                        research_goal_context=task_def.task_description,
+                        inquiry_focus="Research Complete. Please export or preview the results.",
+                        allowed_tools=[
+                            "research/preview_results",
+                            "research/export_results",
+                        ],
+                        directive_type=DirectiveType.COMPLETION,
+                    )
+                else:
+                    # Planner returned a directive signal (ENRICH, DISCOVERY, NEEDS_STRATEGIC_REVIEW)
+                    planner_signal = planner_signal_tuple
+                    # We will build the directive payload later based on this signal
+                    result_status = (
+                        research_models.RequestDirectiveResultStatus.DIRECTIVE_ISSUED  # Assume directive will be issued
+                    )
                 # result_status will be set later when the directive is built
 
         elif resulting_status == OverallStatus.AWAITING_DIRECTIVE:
