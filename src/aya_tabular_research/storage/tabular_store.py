@@ -241,26 +241,38 @@ class TabularStore(DataStore):
             malformed_count = 0
 
             for entity_dict in entities:
-                # Check if all index columns are present and not null
+                # Construct index key, allowing pd.NA for non-identifier index columns
+                index_val_list = []
                 try:
-                    index_val_list = [entity_dict[col] for col in self._index_columns]
-                    if any(pd.isnull(val) for val in index_val_list):
-                        raise ValueError("Null value in index column")
-                    index_key = tuple(index_val_list)  # Always use tuple as key for map
-
-                except (KeyError, ValueError) as e:
+                    for col in self._index_columns:
+                        val = entity_dict.get(col)  # Use .get() to avoid KeyError
+                        if col == self._identifier_column:
+                            if pd.isnull(val):
+                                raise ValueError(
+                                    f"Identifier column '{col}' cannot be null"
+                                )
+                            index_val_list.append(val)
+                        elif pd.isnull(val):
+                            index_val_list.append(
+                                pd.NA
+                            )  # Use pd.NA for missing non-identifier index cols
+                        else:
+                            index_val_list.append(val)
+                    index_key = tuple(index_val_list)
+                except ValueError as e:  # Catches null identifier error
                     logger.warning(
-                        f"Skipping entity in batch due to missing/null index column value ({e}): {entity_dict}"
+                        f"Skipping entity in batch due to null identifier column value ({e}): {entity_dict}"
                     )
                     malformed_count += 1
                     continue
+                # Note: KeyError is no longer possible here due to .get()
 
+                # Filter data and ensure index columns (potentially with pd.NA) are included
                 valid_data = {
                     k: v for k, v in entity_dict.items() if k in self._columns
                 }
-                # Ensure all index columns are present (should be due to check above)
                 for i, col in enumerate(self._index_columns):
-                    valid_data[col] = index_val_list[i]
+                    valid_data[col] = index_val_list[i]  # Assign potentially NA value
 
                 # Overwrite previous entry in batch if duplicate index found
                 if index_key in processed_entities_map:

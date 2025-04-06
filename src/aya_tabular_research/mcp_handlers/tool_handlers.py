@@ -1,9 +1,8 @@
 # Standard library imports
-import datetime
-import json
+import datetime  # Need datetime for timestamp
+import json  # Need json for CSV serialization
 import logging
-import os
-import uuid
+import uuid  # Need uuid for unique id
 from typing import Optional, Union
 
 # Third-party imports
@@ -19,7 +18,7 @@ from ..core import instances
 # Import custom exceptions and error models
 from ..core.exceptions import AYAServerError
 from ..core.models import research_models
-from ..core.models.enums import DirectiveType, OverallStatus  # Import Enum
+from ..core.models.enums import DirectiveType, OverallStatus
 from ..core.models.error_models import OperationalErrorData
 from ..core.models.research_models import (
     DefineTaskArgs,
@@ -34,6 +33,7 @@ from ..core.models.research_models import (
     SubmitUserClarificationArgs,
 )
 from ..storage.tabular_store import INTERNAL_COLS
+from ..utils.artifact_manager import get_artifact_path  # ADDED IMPORT
 
 # Import the central error handler
 from .error_handler import handle_aya_exception
@@ -103,7 +103,7 @@ async def handle_define_task(args: DefineTaskArgs, ctx: Context) -> DefineTaskRe
                     "Please provide guidance via 'research/submit_user_clarification'."
                 ],
                 allowed_tools=["research/submit_user_clarification"],
-                directive_type=DirectiveType.ENRICHMENT,  # Using ENRICHMENT as placeholder type for clarification request
+                directive_type=DirectiveType.CLARIFICATION,
             )
             result_status = (
                 research_models.RequestDirectiveResultStatus.CLARIFICATION_NEEDED
@@ -117,7 +117,7 @@ async def handle_define_task(args: DefineTaskArgs, ctx: Context) -> DefineTaskRe
                     "research/preview_results",
                     "research/export_results",
                 ],
-                directive_type=DirectiveType.COMPLETION,  # Using COMPLETION as placeholder type
+                directive_type=DirectiveType.COMPLETION,
             )
             result_status = (
                 research_models.RequestDirectiveResultStatus.RESEARCH_COMPLETE
@@ -662,7 +662,8 @@ async def handle_preview_results(args: dict, ctx: Context) -> str:
 
         # Use Pandas to format as markdown
         # Reset index before converting to markdown to include index columns
-        markdown_preview = preview_df.reset_index().to_markdown(index=False)
+        # FIX: Directly convert to markdown, including the index ('Country')
+        markdown_preview = preview_df.to_markdown()
         return (
             f"**Results Preview (First {len(preview_df)} rows):**\n\n{markdown_preview}"
         )
@@ -682,42 +683,41 @@ async def handle_export_results(args: ExportResultsArgs, ctx: Context) -> Export
     logger.info(f"Tool '{operation}' called with format: {args.format.value}")
     state_manager = instances.state_manager
     kb = instances.knowledge_base
-    artifact_manager = instances.artifact_manager
+    # artifact_manager = instances.artifact_manager # REMOVED - Incorrect usage
 
     try:
-        if not state_manager or not kb or not artifact_manager:
-            raise AYAServerError("Server components not initialized.")
+        # Check required components (artifact_manager removed)
+        if not state_manager or not kb:
+            raise AYAServerError(
+                "Core server components (StateManager, KnowledgeBase) not initialized."
+            )
         if state_manager.status != OverallStatus.RESEARCH_COMPLETE:
             raise AYAServerError(
                 f"Cannot export results in state: {state_manager.status.value}",
                 code=INVALID_REQUEST,
             )
 
-        artifacts_dir = artifact_manager.get_artifacts_dir()
-        logger.debug(f"Artifacts directory: {artifacts_dir}")
-
-        # Ensure artifacts directory exists
-        try:
-            os.makedirs(artifacts_dir, exist_ok=True)
-            logger.debug(f"Ensured artifacts directory exists: {artifacts_dir}")
-        except (OSError, PermissionError) as dir_err:
-            op_data = OperationalErrorData(
-                component="Filesystem",
-                operation="makedirs",
-                details=f"Failed to create artifacts directory '{artifacts_dir}': {dir_err}",
-            )
-            raise AYAServerError(
-                "Filesystem error: Could not create export directory.",
-                data=op_data,
-            ) from dir_err
-
-        # Generate unique filename and path
+        # Use get_artifact_path utility
+        # Note: os.makedirs is handled within get_artifact_path if filename is provided
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         unique_id = uuid.uuid4().hex[:8]
         file_format = args.format.value
         filename = f"export_{timestamp}_{unique_id}.{file_format}"
-        full_file_path = os.path.join(artifacts_dir, filename)
-        logger.debug(f"Generated export file path: {full_file_path}")
+
+        try:
+            # Get the full path, creating directories as needed
+            full_file_path = get_artifact_path(filename=filename)
+            logger.debug(f"Generated export file path: {full_file_path}")
+        except (OSError, PermissionError, FileNotFoundError) as path_err:
+            op_data = OperationalErrorData(
+                component="ArtifactManagerUtil",
+                operation="get_artifact_path",
+                details=f"Failed to get or create artifact path for '{filename}': {path_err}",
+            )
+            raise AYAServerError(
+                "Filesystem error: Could not determine or create export path.",
+                data=op_data,
+            ) from path_err
 
         # Fetch all data from the Knowledge Base
         logger.debug(

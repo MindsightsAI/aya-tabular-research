@@ -278,20 +278,54 @@ class Planner:
                 )
                 # profile remains None
 
-            if profile and profile.get(OBSTACLES_COL):
-                logger.warning(
-                    f"Planner: Entity '{entity_id}' has known obstacles: {profile[OBSTACLES_COL]}. Marking as blocked."
-                )
+            # Check if ANY profile row for this entity has obstacles
+            has_obstacles = False
+            if isinstance(profile, list):  # Handle list case (MultiIndex)
+                for row_profile in profile:
+                    if row_profile and row_profile.get(OBSTACLES_COL):
+                        has_obstacles = True
+                        logger.warning(
+                            f"Planner: Entity '{entity_id}' has known obstacles in row {row_profile.get(self._kb._data_store.index_columns[1], 'N/A')}: {row_profile.get(OBSTACLES_COL, 'Unknown Obstacle')}. Marking as blocked."
+                        )
+                        break  # Found an obstacle, no need to check other rows
+            elif isinstance(profile, dict):  # Handle dict case (Single Index)
+                if profile.get(OBSTACLES_COL):
+                    has_obstacles = True
+                    logger.warning(
+                        f"Planner: Entity '{entity_id}' has known obstacles: {profile.get(OBSTACLES_COL, 'Unknown Obstacle')}. Marking as blocked."
+                    )
+
+            if has_obstacles:
                 blocked_candidates.append(entity_id)
                 continue  # Skip further evaluation for blocked candidates
 
             # --- Calculate Priority Score ---
             priority_score = 0.0  # Use float for potentially finer scoring
 
+            # Extract confidence and proposals, handling list or dict profile
+            confidence = None
+            proposals = None
             if profile:
-                confidence = profile.get(CONFIDENCE_COL)
-                proposals = profile.get(PROPOSALS_COL)
-                # findings = profile.get(FINDINGS_COL) # Not used yet
+                if isinstance(profile, list):
+                    if profile:  # Check if list is not empty
+                        first_row_profile = profile[0]
+                        confidence = first_row_profile.get(CONFIDENCE_COL)
+                        proposals = first_row_profile.get(PROPOSALS_COL)
+                        # findings = first_row_profile.get(FINDINGS_COL) # Not used yet
+                    else:
+                        logger.warning(
+                            f"Profile for entity '{entity_id}' was an empty list."
+                        )
+                elif isinstance(profile, dict):
+                    confidence = profile.get(CONFIDENCE_COL)
+                    proposals = profile.get(PROPOSALS_COL)
+                    # findings = profile.get(FINDINGS_COL) # Not used yet
+                else:
+                    logger.warning(
+                        f"Unexpected profile type for entity '{entity_id}': {type(profile)}"
+                    )
+
+                # Now use the extracted confidence and proposals variables
 
                 # Boost for low confidence
                 if (
@@ -325,11 +359,25 @@ class Planner:
             # Determine missing attributes now for potential use in selection/focus
             missing_attributes = []
             if profile and self._task_definition.target_columns:
-                missing_attributes = [
-                    col
-                    for col in self._task_definition.target_columns
-                    if pd.isnull(profile.get(col))
-                ]
+                # Determine profile to check based on type (list or dict)
+                profile_to_check = None
+                if isinstance(profile, list):
+                    if profile:  # Check if list is not empty
+                        profile_to_check = profile[0]
+                elif isinstance(profile, dict):
+                    profile_to_check = profile
+
+                if profile_to_check:
+                    missing_attributes = [
+                        col
+                        for col in self._task_definition.target_columns
+                        if pd.isnull(
+                            profile_to_check.get(col)
+                        )  # Check the determined profile
+                    ]
+                else:
+                    # If profile was None or an empty list, assume all targets are missing
+                    missing_attributes = self._task_definition.target_columns[:]
 
             candidate_evaluations.append(
                 {
@@ -385,7 +433,26 @@ class Planner:
         focus_areas = missing_attributes[:]  # Start with definitely missing ones
 
         # --- Adapt Focus Areas Based on Feedback (Example Logic) ---
-        proposals = profile.get(PROPOSALS_COL)
+        # FIX: Access the first element if profile is a non-empty list
+        profile_data = None
+        if isinstance(profile, list) and profile:
+            profile_data = profile[0]  # Get the first dictionary from the list
+            logger.debug(f"Profile was a list, using first element: {profile_data}")
+        elif isinstance(profile, dict):  # Handle case where it might already be a dict
+            profile_data = profile
+        else:
+            logger.warning(
+                f"Profile is neither list nor dict: {type(profile)}. Cannot get proposals."
+            )
+
+        proposals = None
+        if profile_data and isinstance(profile_data, dict):
+            # Safely get proposals from the extracted dictionary
+            proposals = profile_data.get(PROPOSALS_COL)
+            logger.debug(f"Extracted proposals: {proposals}")
+        elif profile_data:
+            logger.warning(f"Profile data is not a dict: {type(profile_data)}")
+        # END FIX
         if proposals and isinstance(proposals, list):
             logger.debug(
                 f"Entity {candidate['id']} has proposals. Adapting focus areas."
