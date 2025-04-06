@@ -637,15 +637,12 @@ class Planner:
         self._entities_to_prioritize_retry = []
         return directive_content  # Return the tuple directly
 
-    def determine_next_directive(
-        self, client_assessment: Optional[Dict[str, Any]] = None
-    ) -> PlannerSignal:
+    def determine_next_directive(self) -> PlannerSignal:
         """
-        Determines the next directive signal based on KB state and optional client assessment.
+        Determines the next directive signal based on the current Knowledge Base state.
 
-        Args:
-            client_assessment: Optional dictionary representing the structured assessment
-                               provided by the client in the last report.
+        Handles strategic review triggers (obstacles, confidence, stagnation) and
+        plans Discovery or Enrichment directives accordingly.
 
         Returns:
             A PlannerSignal indicating the next action for the MCP Interface.
@@ -753,64 +750,12 @@ class Planner:
                 )
                 # Proceed with standard planning
 
-        # --- Priority 1: Client Overrides (if assessment provided) ---
-        if client_assessment:
-            logger.debug(f"Processing with client assessment: {client_assessment}")
-            if client_assessment.get("goal_achieved") is True:
-                logger.info(
-                    "Planner: Client assessed goal_achieved=True. Signaling completion."
-                )
-                return None
-            if client_assessment.get("request_user_clarification") is True:
-                logger.warning(
-                    "Planner: Client requested user clarification. Signaling."
-                )
-                return "CLARIFICATION_NEEDED"
-            # Note: We'll use discovery_needed and enrichment_needed flags below
-
-        # --- Priority 2: Server Sanity Checks (Example: Critical Obstacles) ---
+        # --- Priority 1: Server Sanity Checks (Example: Critical Obstacles) ---
         # TODO: Implement more robust obstacle checking if needed, e.g., checking specific critical entities.
         # For now, rely on _plan_enrichment returning "CLARIFICATION_NEEDED" if all incomplete are blocked.
 
-        # --- Priority 3: Guided Action (Based on Client Assessment or Default) ---
-        discovery_requested = (
-            client_assessment.get("discovery_needed") if client_assessment else None
-        )
-        enrichment_requested = (
-            client_assessment.get("enrichment_needed") if client_assessment else None
-        )
-        priority_targets = (
-            client_assessment.get("prioritized_enrichment_targets")
-            if client_assessment
-            else None
-        )
-
-        if discovery_requested is True:
-            logger.info("Planner: Client requested discovery. Planning discovery.")
-            discovery_params = self._plan_discovery()
-            return (DirectiveType.DISCOVERY, discovery_params)  # Use Enum
-
-        if enrichment_requested is True:
-            logger.info(
-                f"Planner: Client requested enrichment (Priority Targets: {priority_targets}). Planning enrichment."
-            )
-            enrichment_outcome = self._plan_enrichment(
-                priority_targets=priority_targets
-            )
-            if isinstance(enrichment_outcome, tuple):  # Enrichment directive content
-                return ("ENRICH", enrichment_outcome)
-            elif enrichment_outcome == "CLARIFICATION_NEEDED":
-                logger.warning(
-                    "Planner: Client requested enrichment, but all targets are blocked. Requesting strategic review."
-                )
-                # Let client review the blocked state instead of direct clarification
-                return ("NEEDS_STRATEGIC_REVIEW", "critical_obstacles")
-            else:  # Enrichment outcome was None (no targets found even with priority)
-                logger.warning(
-                    "Planner: Client requested enrichment, but no valid targets found. Requesting strategic review."
-                )
-                # This case indicates a potential mismatch or issue, trigger review.
-                return ("NEEDS_STRATEGIC_REVIEW", "client_requested_enrichment_failed")
+        # --- Priority 2: Default Algorithmic Action ---
+        # (Client assessment logic removed as per architectural plan)
 
         # --- Priority 4: Default Algorithmic Action (No specific client guidance for phase) ---
         logger.debug(

@@ -83,10 +83,11 @@ class DirectiveBuilder:
                 logger.debug(
                     f"Fetching profile for entity '{target_entity_id}' for enrichment context."
                 )
-                directive_context_data = self._kb.get_entity_profile(
+                # Fetch the full entity profile as per architectural plan
+                full_entity_profile = self._kb.get_entity_profile(
                     target_entity_id
                 )  # Might raise KBInteractionError
-                if not directive_context_data:
+                if not full_entity_profile:
                     logger.warning(
                         f"Could not retrieve profile for entity '{target_entity_id}'. directive_context will be None."
                     )
@@ -108,7 +109,7 @@ class DirectiveBuilder:
                     allowed_tools=["research/submit_inquiry_report"],
                     target_entity_id=target_entity_id,
                     directive_type=DirectiveType.ENRICHMENT,  # Use Enum
-                    directive_context=directive_context_data,  # Embed context here
+                    directive_context=full_entity_profile,  # Embed full profile context here
                 )
                 logger.info(
                     f"Built ENRICH instruction {directive.instruction_id} for focus: '{inquiry_focus}'"
@@ -157,11 +158,19 @@ class DirectiveBuilder:
                 logger.debug(
                     f"Obstacle summary for strategic review context: {obstacle_summary}"
                 )
+                # Fetch incomplete entities list as per architectural plan
+                incomplete_entities = self._kb.find_incomplete_entities(
+                    task_definition.target_columns
+                )
+                logger.debug(
+                    f"Incomplete entities for strategic review context: {incomplete_entities}"
+                )
                 strategic_context_data = StrategicReviewContext(
                     review_reason=review_reason,
                     research_goal=task_definition.task_description,
                     kb_summary=kb_summary,
                     obstacle_summary=obstacle_summary,
+                    incomplete_entities=incomplete_entities,  # Add incomplete entities list
                 )
 
                 focus_areas_review = [

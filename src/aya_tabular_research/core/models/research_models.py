@@ -167,9 +167,9 @@ class InstructionObjectV3(BaseModel):
         description="The specific entity ID this instruction targets (for enrichment directives).",
     )
     # --- NEW Field for Embedded Context ---
-    directive_context: Optional[Dict[str, Any]] = Field(
+    directive_context: Optional[List[Dict[str, Any]]] = Field(
         default=None,
-        description="Context data relevant to the directive, typically the entity profile for ENRICHMENT directives.",
+        description="Context data relevant to the directive. For ENRICHMENT, this contains the full entity profile (list of row dictionaries) from the Knowledge Base.",
     )
 
     # --- Placeholder/Helper Methods ---
@@ -212,6 +212,10 @@ class StrategicReviewContext(BaseModel):
     obstacle_summary: Optional[List[Dict[str, Any]]] = Field(
         None,
         description="Summary of entities with active obstacles (e.g., [{'entity_id': 'X', 'obstacle': '...'}, ...]). Provided if reason is 'critical_obstacles'.",
+    )
+    incomplete_entities: Optional[List[str]] = Field(
+        None,
+        description="List of entity IDs currently identified as incomplete by the planner.",
     )
     # Add other context fields as needed
 
@@ -270,7 +274,8 @@ class IdentifiedObstacle(BaseModel):
 
     obstacle: str = Field(..., description="Description of the obstacle.")
     details: Optional[str] = Field(
-        None, description="Additional details about the obstacle."
+        None,
+        description="Additional details about the obstacle. Can optionally include keys matching TaskDefinition.granularity_columns for granular targeting.",
     )
 
 
@@ -278,7 +283,10 @@ class ProposedNextStep(BaseModel):
     """Represents a potential next step suggested by the client based on the inquiry cycle's outcome."""
 
     proposal: str = Field(..., description="Description of the proposed next step.")
-    rationale: Optional[str] = Field(None, description="Reasoning behind the proposal.")
+    rationale: Optional[str] = Field(
+        None,
+        description="Reasoning behind the proposal. Can optionally include keys matching TaskDefinition.granularity_columns for granular targeting.",
+    )
 
 
 class InquiryReport(BaseModel):

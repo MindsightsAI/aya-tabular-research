@@ -382,89 +382,202 @@ class TabularStore(DataStore):
                                 pass  # Ignore conversion errors, update will handle or raise warning
                     self._df.update(existing_entities_df[non_feedback_cols_to_update])
 
-                # Update feedback columns based on the primary identifier (_identifier_column)
-                # Apply the *last* feedback value from the batch for a given entity_id to all rows of that entity_id
+                # --- Apply Feedback Updates ---
                 if feedback_cols_to_update and self._identifier_column:
-                    identifier_level_name = self._identifier_column
-                    is_multi_index = isinstance(self._df.index, pd.MultiIndex)
+                    list_feedback_cols = [OBSTACLES_COL, PROPOSALS_COL]
+                    other_feedback_cols = [
+                        col
+                        for col in feedback_cols_to_update
+                        if col not in list_feedback_cols
+                    ]
 
-                    # Check if identifier column is part of the index
-                    if (
-                        is_multi_index
-                        and self._identifier_column not in self._df.index.names
-                    ) or (
-                        not is_multi_index
-                        and self._identifier_column != self._df.index.name
-                    ):
-                        logger.error(
-                            f"Identifier column '{self._identifier_column}' not found in index. Cannot apply feedback updates."
-                        )
-                    else:
-                        # --- Refactored Feedback Update Logic ---
+                    # 1. Apply identifier-based feedback (Narrative, Confidence) using mapping
+                    if other_feedback_cols:
                         logger.debug(
-                            f"Applying feedback updates for {len(existing_ids)} existing rows using vectorized approach."
+                            f"Applying identifier-based feedback for: {other_feedback_cols}"
                         )
+                        identifier_level_name = self._identifier_column
+                        is_multi_index = isinstance(self._df.index, pd.MultiIndex)
 
-                        # 1. Get the last feedback values from the batch per entity_id
-                        if is_multi_index:
-                            last_feedback_map = (
-                                existing_entities_df[feedback_cols_to_update]
-                                .groupby(level=identifier_level_name, sort=False)
-                                .last()
+                        if (
+                            is_multi_index
+                            and identifier_level_name not in self._df.index.names
+                        ) or (
+                            not is_multi_index
+                            and identifier_level_name != self._df.index.name
+                        ):
+                            logger.error(
+                                f"Identifier column '{identifier_level_name}' not found in index. Cannot apply identifier-based feedback."
                             )
-                        else:  # Single index
-                            # Need to handle potential duplicate index entries in the batch explicitly
-                            last_feedback_map = existing_entities_df[
-                                ~existing_entities_df.index.duplicated(keep="last")
-                            ][feedback_cols_to_update]
-
-                        # 2. Map these values to the target rows in the main DataFrame
-                        target_rows = self._df.loc[
-                            existing_ids
-                        ]  # Select the rows to update in self._df
-
-                        if is_multi_index:
-                            target_identifiers = target_rows.index.get_level_values(
-                                identifier_level_name
-                            )
-                        else:  # Single index
-                            target_identifiers = target_rows.index
-
-                        # 3. Apply updates column by column
-                        for fb_col in feedback_cols_to_update:
-                            if fb_col not in self._df.columns:
-                                logger.warning(
-                                    f"Feedback column '{fb_col}' not found in main DataFrame. Skipping update."
-                                )
-                                continue
-                            if fb_col not in last_feedback_map.columns:
-                                logger.warning(
-                                    f"Feedback column '{fb_col}' not found in batch's last values. Skipping update."
-                                )
-                                continue
-
-                            # Create the mapping series
-                            update_values = target_identifiers.map(
-                                last_feedback_map[fb_col]
-                            )
-
-                            # Apply the update only where the mapped value is not NaN
-                            # (handles cases where an entity_id in self._df might not have had a feedback update in the batch)
-                            valid_updates_mask = update_values.notna()
-                            if valid_updates_mask.any():
-                                # Use .loc with the original index slice (existing_ids) and the mask derived from mapped values
-                                # Ensure the update_values series is aligned with the target slice index
-                                self._df.loc[
-                                    target_rows.index[valid_updates_mask], fb_col
-                                ] = update_values[valid_updates_mask]
-                                logger.debug(
-                                    f"Applied updates for feedback column '{fb_col}' to {valid_updates_mask.sum()} rows."
+                        else:
+                            # Get last value per identifier from the batch updates
+                            if is_multi_index:
+                                last_feedback_map = (
+                                    existing_entities_df[other_feedback_cols]
+                                    .groupby(level=identifier_level_name, sort=False)
+                                    .last()
                                 )
                             else:
-                                logger.debug(
-                                    f"No valid updates found for feedback column '{fb_col}'."
+                                last_feedback_map = existing_entities_df[
+                                    ~existing_entities_df.index.duplicated(keep="last")
+                                ][other_feedback_cols]
+
+                            # Map to the target rows in the main DataFrame
+                            target_rows = self._df.loc[
+                                existing_entities_df.index
+                            ]  # Use index from existing_entities_df
+                            if is_multi_index:
+                                target_identifiers = target_rows.index.get_level_values(
+                                    identifier_level_name
                                 )
-                        # --- End Refactored Logic ---
+                            else:
+                                target_identifiers = target_rows.index
+
+                            # Apply updates column by column
+                            for fb_col in other_feedback_cols:
+                                if (
+                                    fb_col not in self._df.columns
+                                    or fb_col not in last_feedback_map.columns
+                                ):
+                                    continue
+                                update_values = target_identifiers.map(
+                                    last_feedback_map[fb_col]
+                                )
+                                valid_updates_mask = update_values.notna()
+                                if valid_updates_mask.any():
+                                    self._df.loc[
+                                        target_rows.index[valid_updates_mask], fb_col
+                                    ] = update_values[valid_updates_mask]
+                                    logger.debug(
+                                        f"Applied identifier-based updates for '{fb_col}' to {valid_updates_mask.sum()} rows."
+                                    )
+
+                    # 2. Apply Granular/Base-Row Feedback (Obstacles, Proposals) by appending
+                    list_feedback_cols_present = [
+                        col
+                        for col in list_feedback_cols
+                        if col in existing_entities_df.columns
+                    ]
+                    if list_feedback_cols_present:
+                        logger.debug(
+                            f"Processing granular/base-row feedback for: {list_feedback_cols_present}"
+                        )
+
+                        # Iterate through the rows in the update batch
+                        for existing_index, row_data in existing_entities_df.iterrows():
+                            identifier_value = None
+                            # Determine identifier value from the potentially multi-level index
+                            if isinstance(existing_index, tuple):
+                                try:
+                                    id_pos = self._index_columns.index(
+                                        self._identifier_column
+                                    )
+                                    identifier_value = existing_index[id_pos]
+                                except (ValueError, IndexError):
+                                    pass  # Handle cases where identifier isn't found
+                            elif (
+                                self._identifier_column == self._df.index.name
+                            ):  # Check if single index is the identifier
+                                identifier_value = existing_index
+
+                            if identifier_value is None:
+                                logger.warning(
+                                    f"Could not determine identifier for index {existing_index}, skipping list feedback application."
+                                )
+                                continue
+
+                            # Find base row index for this identifier (only needed for non-granular)
+                            base_row_index = None
+                            base_row_mask = (
+                                self._df[self._identifier_column] == identifier_value
+                            )
+                            for idx_col in self._index_columns:
+                                if idx_col != self._identifier_column:
+                                    base_row_mask &= self._df[idx_col].isnull()
+                            base_row_indices = self._df.index[base_row_mask]
+                            if not base_row_indices.empty:
+                                base_row_index = base_row_indices[
+                                    0
+                                ]  # Assume only one base row
+
+                            # Process each list-based feedback column present in the input row
+                            for list_fb_col in list_feedback_cols_present:
+                                new_feedback_list = row_data.get(list_fb_col)
+                                if new_feedback_list is None or not isinstance(
+                                    new_feedback_list, list
+                                ):
+                                    continue  # Skip if no feedback or not a list
+
+                                for new_feedback_item in new_feedback_list:
+                                    if not isinstance(new_feedback_item, dict):
+                                        logger.warning(
+                                            f"Feedback item in {list_fb_col} for index {existing_index} is not a dict, skipping: {new_feedback_item}"
+                                        )
+                                        continue
+
+                                    # Determine if feedback item is granular
+                                    has_all_granularity_keys = all(
+                                        key in new_feedback_item
+                                        for key in self._index_columns
+                                    )
+                                    is_granular = has_all_granularity_keys and all(
+                                        pd.notna(new_feedback_item.get(key))
+                                        for key in self._index_columns
+                                    )
+
+                                    target_index = None
+                                    apply_mode = "skip"
+
+                                    if is_granular:
+                                        try:
+                                            target_index_tuple = tuple(
+                                                new_feedback_item[key]
+                                                for key in self._index_columns
+                                            )
+                                            if target_index_tuple in self._df.index:
+                                                target_index = target_index_tuple
+                                                apply_mode = "granular"
+                                            else:
+                                                logger.warning(
+                                                    f"Granular feedback target index {target_index_tuple} not found for item: {new_feedback_item}"
+                                                )
+                                        except KeyError as e:
+                                            logger.warning(
+                                                f"Missing granularity key '{e}' in granular feedback item: {new_feedback_item}"
+                                            )
+                                    else:  # Non-granular
+                                        if base_row_index is not None:
+                                            target_index = base_row_index
+                                            apply_mode = "base"
+                                        else:
+                                            logger.warning(
+                                                f"No base row found for identifier '{identifier_value}' to apply non-granular feedback: {new_feedback_item}"
+                                            )
+
+                                    # Append feedback item to the target row's list
+                                    if (
+                                        apply_mode != "skip"
+                                        and target_index is not None
+                                    ):
+                                        try:
+                                            current_list = self._df.loc[
+                                                target_index, list_fb_col
+                                            ]
+                                            if current_list is None or not isinstance(
+                                                current_list, list
+                                            ):
+                                                current_list = []
+                                            # TODO: Consider adding duplicate checking before appending?
+                                            current_list.append(new_feedback_item)
+                                            # Use loc assignment which handles setting value in place
+                                            self._df.loc[target_index, list_fb_col] = (
+                                                current_list
+                                            )
+                                        except Exception as e:
+                                            logger.error(
+                                                f"Error applying {apply_mode} feedback item {new_feedback_item} to {list_fb_col} at index {target_index}: {e}",
+                                                exc_info=True,
+                                            )
                 updated_count = len(
                     existing_entities_df
                 )  # Count based on unique index rows updated
