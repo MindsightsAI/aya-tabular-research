@@ -320,9 +320,9 @@ async def handle_submit_inquiry_report(
 
         elif resulting_status == OverallStatus.AWAITING_DIRECTIVE:
             logger.debug("Report processed, planning next directive.")
-            planner_signal_tuple = planner.determine_next_directive(
-                client_assessment=None  # Pass assessment if available from report
-            )
+            planner_signal_tuple = (
+                planner.determine_next_directive()
+            )  # Removed client_assessment argument
             if planner_signal_tuple == "CLARIFICATION_NEEDED":
                 # Trigger strategic review if clarification needed after standard report
                 planner_signal = (

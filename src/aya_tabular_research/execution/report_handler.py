@@ -40,6 +40,13 @@ from ..core.models.research_models import (  # SynthesizedFinding, IdentifiedObs
 )
 from ..core.state_manager import StateManager
 from ..storage.knowledge_base import KnowledgeBase
+from ..storage.tabular_store import (  # Import constants for feedback columns
+    CONFIDENCE_COL,
+    FINDINGS_COL,
+    NARRATIVE_COL,
+    OBSTACLES_COL,
+    PROPOSALS_COL,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -395,55 +402,65 @@ class ReportHandler:
                                 )
                                 malformed_count += 1
 
-                # 2. Perform Batch Update for Structured Data
+                # --- Refactored: Integrate Feedback into Batch Update ---
+                # 2. Add Feedback Dictionary (if applicable)
+                if primary_entity_id_for_feedback:
+                    feedback_dict = {identifier_col: primary_entity_id_for_feedback}
+                    added_feedback = False
+                    # Pass raw list of dicts, preserving granularity keys
+                    if report.identified_obstacles:
+                        feedback_dict[OBSTACLES_COL] = [
+                            o.model_dump() for o in report.identified_obstacles
+                        ]
+                        added_feedback = True
+                    if report.proposed_next_steps:
+                        feedback_dict[PROPOSALS_COL] = [
+                            p.model_dump() for p in report.proposed_next_steps
+                        ]
+                        added_feedback = True
+                    # Also include other feedback types previously handled separately
+                    if report.summary_narrative is not None:
+                        feedback_dict[NARRATIVE_COL] = report.summary_narrative
+                        added_feedback = True
+                    if report.synthesized_findings:
+                        feedback_dict[FINDINGS_COL] = [
+                            f.model_dump() for f in report.synthesized_findings
+                        ]
+                        added_feedback = True
+                    if report.confidence_score is not None:
+                        feedback_dict[CONFIDENCE_COL] = report.confidence_score
+                        added_feedback = True
+
+                    if added_feedback:
+                        logger.debug(
+                            f"Adding feedback dictionary for entity '{primary_entity_id_for_feedback}' to batch update."
+                        )
+                        entities_to_update.append(feedback_dict)
+                # Log warning if feedback exists but no entity ID was found
+                elif (
+                    report.identified_obstacles
+                    or report.proposed_next_steps
+                    or report.summary_narrative is not None
+                    or report.synthesized_findings
+                    or report.confidence_score is not None
+                ):
+                    logger.warning(
+                        f"KB Update: Report has feedback data but no primary entity ID found (Instruction: {instruction_id}). Feedback not stored."
+                    )
+
+                # 3. Perform Combined Batch Update (Data + Feedback)
                 if entities_to_update:
                     self._kb.batch_update_entities(
                         entities_to_update
                     )  # This might raise KBInteractionError
                     logger.info(
-                        f"KB Update: Submitted {len(entities_to_update)} entities/rows for batch update (Instruction: {instruction_id})."
+                        f"KB Update: Submitted {len(entities_to_update)} dictionaries (data rows + feedback) for batch update (Instruction: {instruction_id})."
                     )
                 elif not malformed_count:  # Only log if no other warnings occurred
                     logger.info(
-                        f"KB Update: No valid structured data points to batch update (Instruction: {instruction_id})."
+                        f"KB Update: No valid structured data points or feedback to batch update (Instruction: {instruction_id})."
                     )
-
-                # 3. Store Richer Reporting Fields (Synchronously) - Applied to the first entity ID encountered
-                if primary_entity_id_for_feedback:
-                    logger.debug(
-                        f"KB Update: Storing richer report data against primary entity '{primary_entity_id_for_feedback}' (Instruction: {instruction_id})"
-                    )
-                    # These might raise KBInteractionError
-                    if report.summary_narrative is not None:
-                        self._kb.store_narrative(
-                            primary_entity_id_for_feedback, report.summary_narrative
-                        )
-                    if report.synthesized_findings:
-                        self._kb.store_findings(
-                            primary_entity_id_for_feedback, report.synthesized_findings
-                        )
-                    if report.identified_obstacles:
-                        self._kb.store_obstacles(
-                            primary_entity_id_for_feedback, report.identified_obstacles
-                        )
-                    if report.proposed_next_steps:
-                        self._kb.store_proposals(
-                            primary_entity_id_for_feedback, report.proposed_next_steps
-                        )
-                    if report.confidence_score is not None:
-                        self._kb.store_confidence(
-                            primary_entity_id_for_feedback, report.confidence_score
-                        )
-                elif (
-                    report.summary_narrative
-                    or report.synthesized_findings
-                    or report.identified_obstacles
-                    or report.proposed_next_steps
-                    or report.confidence_score is not None
-                ):
-                    logger.warning(
-                        f"KB Update: Report has richer data but no primary entity ID found (Instruction: {instruction_id}). Data not stored."
-                    )  # This might happen if all data points were malformed
+                # --- End Refactored Feedback Integration ---
 
             logger.info(
                 f"Synchronous KB update finished for instruction: {instruction_id}"

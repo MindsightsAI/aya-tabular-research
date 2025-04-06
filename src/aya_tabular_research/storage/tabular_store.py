@@ -325,16 +325,96 @@ class TabularStore(DataStore):
                 )
             )
 
-            # Add new rows
+            # Add new rows & potentially create base rows
             added_count = 0
+            base_rows_to_add = []
+            processed_base_indices = set()  # Track base rows added in this batch
+
             if not new_entities_df.empty:
-                logger.debug(f"Adding {len(new_entities_df)} new entities in batch.")
-                # Ensure columns match before concat
-                new_entities_df = new_entities_df.reindex(columns=self._df.columns)
-                self._df = pd.concat(  # type: ignore # Ignore because concat can handle None df
-                    [self._df, new_entities_df], ignore_index=False, sort=False
+                logger.debug(
+                    f"Processing {len(new_entities_df)} new entities for addition."
                 )
-                added_count = len(new_entities_df)
+                is_multi_index = isinstance(self._df.index, pd.MultiIndex)
+                identifier_col = self._identifier_column
+
+                # Ensure columns match before potential concat
+                new_entities_df = new_entities_df.reindex(columns=self._df.columns)
+
+                # Check for proactive base row creation
+                if is_multi_index and len(self._index_columns) > 1 and identifier_col:
+                    for index_tuple, row_data in new_entities_df.iterrows():
+                        # Check if this new row has full granularity (all index cols non-null)
+                        if not row_data[self._index_columns].isnull().any():
+                            try:
+                                id_pos = self._index_columns.index(identifier_col)
+                                identifier_value = index_tuple[id_pos]
+
+                                # Construct base row index (identifier + NAs)
+                                base_row_index_list = []
+                                for i, _ in enumerate(
+                                    self._index_columns
+                                ):  # Use _ for unused col
+                                    base_row_index_list.append(
+                                        identifier_value if i == id_pos else pd.NA
+                                    )
+                                base_row_index = tuple(base_row_index_list)
+
+                                # Check if base row already exists or is already being added
+                                if (
+                                    base_row_index not in self._df.index
+                                    and base_row_index not in processed_base_indices
+                                    and base_row_index not in new_entities_df.index
+                                ):  # Check if base row itself is in the new batch
+
+                                    logger.debug(
+                                        f"Proactively creating base row for new entity '{identifier_value}' with index {base_row_index}"
+                                    )
+                                    base_row_dict = {
+                                        col: val
+                                        for col, val in zip(
+                                            self._index_columns,
+                                            base_row_index_list,
+                                            strict=True,
+                                        )  # zip() call ends here
+                                    }  # dict comprehension ends here
+                                    # Add nulls/NAs for other columns if needed, though reindex handles this later
+                                    base_rows_to_add.append(base_row_dict)
+                                    processed_base_indices.add(base_row_index)
+
+                            except (ValueError, IndexError, TypeError) as e:
+                                logger.warning(
+                                    f"Error processing index {index_tuple} for base row creation: {e}"
+                                )
+
+                # Create DataFrame for base rows if any
+                base_rows_df = pd.DataFrame()
+                if base_rows_to_add:
+                    base_rows_df = pd.DataFrame(base_rows_to_add)
+                    # Set index carefully, ensuring correct dtypes if possible
+                    for _, col in enumerate(self._index_columns):  # Use _ for unused i
+                        if col in base_rows_df.columns and col in self._df.index.names:
+                            target_dtype = self._df.index.get_level_values(col).dtype
+                            if base_rows_df[col].dtype != target_dtype:
+                                try:
+                                    base_rows_df[col] = base_rows_df[col].astype(
+                                        target_dtype
+                                    )
+                                except Exception:
+                                    pass  # Ignore conversion errors for NA
+                    base_rows_df = base_rows_df.set_index(
+                        self._index_columns, drop=False
+                    )
+                    base_rows_df = base_rows_df.reindex(
+                        columns=self._df.columns
+                    )  # Match columns
+
+                # Concatenate new entities and any new base rows
+                dfs_to_concat = [self._df, new_entities_df]
+                if not base_rows_df.empty:
+                    dfs_to_concat.append(base_rows_df)
+
+                self._df = pd.concat(dfs_to_concat, ignore_index=False, sort=False)
+                added_count = len(new_entities_df) + len(base_rows_df)
 
             # Update existing rows
             updated_count = 0
@@ -559,25 +639,40 @@ class TabularStore(DataStore):
                                         apply_mode != "skip"
                                         and target_index is not None
                                     ):
+                                        # --- Refined Error Handling ---
                                         try:
-                                            current_list = self._df.loc[
+                                            current_value = self._df.loc[
                                                 target_index, list_fb_col
                                             ]
-                                            if current_list is None or not isinstance(
-                                                current_list, list
+                                            if current_value is None or pd.isna(
+                                                current_value
                                             ):
                                                 current_list = []
+                                            elif isinstance(current_value, list):
+                                                current_list = current_value
+                                            else:
+                                                # Existing value is not a list or None/NA - cannot append
+                                                raise TypeError(
+                                                    f"Existing value is not a list or null, but type {type(current_value)}"
+                                                )
+
                                             # TODO: Consider adding duplicate checking before appending?
                                             current_list.append(new_feedback_item)
                                             # Use loc assignment which handles setting value in place
                                             self._df.loc[target_index, list_fb_col] = (
                                                 current_list
                                             )
+                                        except TypeError as te:
+                                            logger.warning(
+                                                f"Cannot apply feedback item to {list_fb_col} at index {target_index} due to incompatible existing data type: {te}. Item: {new_feedback_item}",
+                                                exc_info=False,
+                                            )
                                         except Exception as e:
                                             logger.error(
-                                                f"Error applying {apply_mode} feedback item {new_feedback_item} to {list_fb_col} at index {target_index}: {e}",
+                                                f"Unexpected error applying {apply_mode} feedback item {new_feedback_item} to {list_fb_col} at index {target_index}: {e}",
                                                 exc_info=True,
                                             )
+                                        # --- End Refined Error Handling ---
                 updated_count = len(
                     existing_entities_df
                 )  # Count based on unique index rows updated

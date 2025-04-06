@@ -1,4 +1,5 @@
 import logging
+from collections import defaultdict  # Added for proposal boosts
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 
 import pandas as pd
@@ -46,6 +47,9 @@ PROPOSAL_BOOST = 1.0  # Use float
 # RECENCY_PENALTY_FACTOR = 0.1 # Example: Penalize recently attempted entities slightly (Not implemented yet)
 RETRY_PRIORITY_BOOST = (
     100.0  # Very high boost for entities explicitly requested for retry
+)
+MENTIONED_IN_PROPOSAL_BOOST = (
+    50.0  # Significant boost for entities mentioned in proposals
 )
 
 
@@ -256,6 +260,26 @@ class Planner:
 
         candidate_evaluations: List[CandidateEvaluation] = []
         blocked_candidates: List[str] = []
+        proposal_boosts = defaultdict(float)  # Store boosts derived from proposals
+        all_known_entity_ids = set()  # Use set for faster lookups
+
+        # Fetch all known entity IDs once for efficient proposal parsing
+        try:
+            all_known_entity_ids = set(self._kb.get_all_entity_ids())
+            logger.debug(
+                f"Fetched {len(all_known_entity_ids)} known entity IDs for proposal parsing."
+            )
+        except KBInteractionError as kbe:
+            logger.error(
+                f"Failed to get entity IDs for proposal parsing: {kbe}", exc_info=True
+            )
+            # Continue without proposal parsing if KB fails, but log error
+        except Exception as e:
+            logger.error(
+                f"Unexpected error getting entity IDs for proposal parsing: {e}",
+                exc_info=True,
+            )
+            # Continue without proposal parsing
 
         for entity_id in entity_ids:
             logger.debug(f"Planner: Evaluating entity '{entity_id}' for enrichment.")
@@ -337,12 +361,36 @@ class Planner:
                         f"Candidate {entity_id} low confidence ({confidence:.2f}), boosting priority."
                     )
 
-                # Boost for existing proposals
-                if proposals:
+                # Boost for existing proposals (generic boost + specific entity mention boost)
+                if proposals and isinstance(proposals, list):
+                    # Apply small generic boost just for having proposals
                     priority_score += PROPOSAL_BOOST
                     logger.debug(
-                        f"Candidate {entity_id} has proposals, boosting priority by {PROPOSAL_BOOST}."
+                        f"Candidate {entity_id} has proposals, applying generic boost {PROPOSAL_BOOST}."
                     )
+                    # Parse proposals to boost *other* mentioned entities
+                    if (
+                        all_known_entity_ids
+                    ):  # Only parse if we successfully fetched IDs
+                        for proposal_item in proposals:
+                            if (
+                                isinstance(proposal_item, dict)
+                                and "proposal" in proposal_item
+                                and isinstance(proposal_item["proposal"], str)
+                            ):
+                                proposal_text = proposal_item["proposal"].lower()
+                                for known_id in all_known_entity_ids:
+                                    # Check if known_id (lowercase) is in proposal_text and not the current entity
+                                    if (
+                                        known_id != entity_id
+                                        and known_id.lower() in proposal_text
+                                    ):
+                                        proposal_boosts[
+                                            known_id
+                                        ] += MENTIONED_IN_PROPOSAL_BOOST
+                                        logger.info(
+                                            f"Boosting '{known_id}' by {MENTIONED_IN_PROPOSAL_BOOST} due to mention in proposal from '{entity_id}'."
+                                        )
 
                 # High boost if explicitly requested for retry via clarification
                 if entity_id in self._entities_to_prioritize_retry:
@@ -387,6 +435,20 @@ class Planner:
                     "missing_attributes": missing_attributes,
                 }
             )
+
+        # --- Apply Accumulated Proposal Boosts ---
+        if proposal_boosts:
+            logger.debug(
+                f"Applying accumulated proposal boosts: {dict(proposal_boosts)}"
+            )
+            for evaluation in candidate_evaluations:
+                boost = proposal_boosts.get(evaluation["id"], 0.0)
+                if boost > 0:
+                    original_priority = evaluation["priority"]
+                    evaluation["priority"] += boost
+                    logger.info(
+                        f"Adjusted priority for '{evaluation['id']}' from {original_priority:.2f} to {evaluation['priority']:.2f} based on proposal mentions."
+                    )
 
         return candidate_evaluations, blocked_candidates
 

@@ -27,6 +27,7 @@ from ..storage.knowledge_base import KnowledgeBase
 
 logger = logging.getLogger(__name__)
 
+MAX_PROFILE_ROWS = 100  # Configurable limit for full profile context
 # Define type alias for the builder result (Now returns only the directive)
 BuilderResult = Union[InstructionObjectV3, StrategicReviewDirective]
 
@@ -91,6 +92,28 @@ class DirectiveBuilder:
                     logger.warning(
                         f"Could not retrieve profile for entity '{target_entity_id}'. directive_context will be None."
                     )
+                    context_to_send = None  # Initialize context to send
+                elif (
+                    isinstance(full_entity_profile, list)
+                    and len(full_entity_profile) > MAX_PROFILE_ROWS
+                ):
+                    logger.warning(
+                        f"Entity profile for '{target_entity_id}' exceeds {MAX_PROFILE_ROWS} rows. Sending summary context."
+                    )
+                    # Create a summary (example: first row + count)
+                    # TODO: Implement more sophisticated summarization if needed
+                    summary_context = {
+                        "summary_type": "truncated_profile",
+                        "total_rows": len(full_entity_profile),
+                        "first_row_preview": (
+                            full_entity_profile[0] if full_entity_profile else None
+                        ),
+                        "message": f"Full profile truncated. Only showing first row out of {len(full_entity_profile)}.",
+                    }
+                    context_to_send = summary_context
+                else:
+                    # Profile is within limits or not a list (should be dict or None)
+                    context_to_send = full_entity_profile
 
                 required_schema_points = focus_areas
                 reporting_guidelines = ReportingGuideline(
@@ -109,7 +132,7 @@ class DirectiveBuilder:
                     allowed_tools=["research/submit_inquiry_report"],
                     target_entity_id=target_entity_id,
                     directive_type=DirectiveType.ENRICHMENT,  # Use Enum
-                    directive_context=full_entity_profile,  # Embed full profile context here
+                    directive_context=context_to_send,  # Embed full profile or summary context
                 )
                 logger.info(
                     f"Built ENRICH instruction {directive.instruction_id} for focus: '{inquiry_focus}'"

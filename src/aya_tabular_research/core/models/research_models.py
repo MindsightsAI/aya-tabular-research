@@ -167,9 +167,9 @@ class InstructionObjectV3(BaseModel):
         description="The specific entity ID this instruction targets (for enrichment directives).",
     )
     # --- NEW Field for Embedded Context ---
-    directive_context: Optional[List[Dict[str, Any]]] = Field(
+    directive_context: Optional[Union[List[Dict[str, Any]], Dict[str, Any]]] = Field(
         default=None,
-        description="Context data relevant to the directive. For ENRICHMENT, this contains the full entity profile (list of row dictionaries) from the Knowledge Base.",
+        description="Context data relevant to the directive. For ENRICHMENT, this contains either the full entity profile (list of row dictionaries) or a summarized version (dict) if the profile is too large.",
     )
 
     # --- Placeholder/Helper Methods ---
