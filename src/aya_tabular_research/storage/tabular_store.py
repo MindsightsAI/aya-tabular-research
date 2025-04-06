@@ -595,6 +595,9 @@ class TabularStore(DataStore):
                                         )
                                         continue
 
+                                    logger.debug(
+                                        f"Processing feedback item for {list_fb_col}: {new_feedback_item}"
+                                    )
                                     # Determine if feedback item is granular
                                     has_all_granularity_keys = all(
                                         key in new_feedback_item
@@ -617,6 +620,9 @@ class TabularStore(DataStore):
                                             if target_index_tuple in self._df.index:
                                                 target_index = target_index_tuple
                                                 apply_mode = "granular"
+                                                logger.debug(
+                                                    f"Applying feedback item as GRANULAR to index {target_index_tuple}"
+                                                )
                                             else:
                                                 logger.warning(
                                                     f"Granular feedback target index {target_index_tuple} not found for item: {new_feedback_item}"
@@ -629,21 +635,29 @@ class TabularStore(DataStore):
                                         if base_row_index is not None:
                                             target_index = base_row_index
                                             apply_mode = "base"
+                                            logger.debug(
+                                                f"Applying feedback item as NON-GRANULAR (to base row) with index {target_index}"
+                                            )  # Corrected indentation
                                         else:
                                             logger.warning(
                                                 f"No base row found for identifier '{identifier_value}' to apply non-granular feedback: {new_feedback_item}"
                                             )
 
-                                    # Append feedback item to the target row's list
+                                        # Append feedback item to the target row's list
+                                        logger.debug(
+                                            f"Attempting to apply feedback item via mode '{apply_mode}' to index {target_index}"
+                                        )
                                     if (
                                         apply_mode != "skip"
                                         and target_index is not None
                                     ):
                                         # --- Refined Error Handling ---
                                         try:
+                                            # Get current value
                                             current_value = self._df.loc[
                                                 target_index, list_fb_col
                                             ]
+                                            # Determine current list (handle None/NA or existing list)
                                             if current_value is None or pd.isna(
                                                 current_value
                                             ):
@@ -651,23 +665,30 @@ class TabularStore(DataStore):
                                             elif isinstance(current_value, list):
                                                 current_list = current_value
                                             else:
-                                                # Existing value is not a list or None/NA - cannot append
+                                                # Raise TypeError if existing value is incompatible
                                                 raise TypeError(
                                                     f"Existing value is not a list or null, but type {type(current_value)}"
                                                 )
 
+                                            # Append new item
                                             # TODO: Consider adding duplicate checking before appending?
                                             current_list.append(new_feedback_item)
-                                            # Use loc assignment which handles setting value in place
+                                            # Assign updated list back
                                             self._df.loc[target_index, list_fb_col] = (
                                                 current_list
                                             )
+                                            # Log success *after* successful assignment
+                                            logger.debug(
+                                                f"Successfully applied feedback item to {list_fb_col} at index {target_index}"
+                                            )
                                         except TypeError as te:
+                                            # Log specific TypeError warning
                                             logger.warning(
                                                 f"Cannot apply feedback item to {list_fb_col} at index {target_index} due to incompatible existing data type: {te}. Item: {new_feedback_item}",
                                                 exc_info=False,
                                             )
                                         except Exception as e:
+                                            # Log unexpected errors
                                             logger.error(
                                                 f"Unexpected error applying {apply_mode} feedback item {new_feedback_item} to {list_fb_col} at index {target_index}: {e}",
                                                 exc_info=True,

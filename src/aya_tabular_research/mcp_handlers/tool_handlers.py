@@ -255,19 +255,8 @@ async def handle_submit_inquiry_report(
 
         if strategic_decision:
             logger.info(f"Processing client strategic decision: {strategic_decision}")
-            # Prepare client assessment dictionary to pass to the planner
-            client_assessment = {
-                "discovery_needed": strategic_decision == "DISCOVER",
-                "enrichment_needed": strategic_decision
-                in ["ENRICH", "ENRICH_SPECIFIC"],
-                "prioritized_enrichment_targets": (
-                    strategic_targets
-                    if strategic_decision == "ENRICH_SPECIFIC"
-                    else None
-                ),
-                "request_user_clarification": strategic_decision == "CLARIFY_USER",
-                "goal_achieved": strategic_decision == "FINALIZE",
-            }
+            # Client assessment dictionary removed as planner no longer uses it.
+            # Strategic decisions are now handled directly below or passed to planner implicitly via state/KB.
             # Check if the client explicitly requested clarification
             if strategic_decision == "CLARIFY_USER":
                 # Directly transition state without calling planner
@@ -281,9 +270,9 @@ async def handle_submit_inquiry_report(
                 next_directive_payload = None
             else:
                 # For other decisions (ENRICH, DISCOVER, FINALIZE, etc.), call the planner
-                planner_signal_tuple = planner.determine_next_directive(
-                    client_assessment=client_assessment
-                )
+                planner_signal_tuple = (
+                    planner.determine_next_directive()
+                )  # Removed client_assessment argument
                 # Process the planner's signal based on the client's decision
                 if planner_signal_tuple == "CLARIFICATION_NEEDED":
                     # Planner determined clarification is needed even after client decision
