@@ -1,14 +1,6 @@
 import logging
-from typing import TYPE_CHECKING  # Removed Optional
 
 from mcp.server.fastmcp import FastMCP
-
-from .core import instances  # Import the new instances module
-
-# Import core components needed for setting globals
-from .core.state_manager import StateManager
-from .execution.instruction_builder import DirectiveBuilder
-from .execution.report_handler import ReportHandler
 
 # Import handlers from the new modules
 from .mcp_handlers import (
@@ -16,12 +8,6 @@ from .mcp_handlers import (
     resource_handlers,
     tool_handlers,
 )
-from .planning.planner import Planner
-from .storage.knowledge_base import KnowledgeBase
-
-# Use TYPE_CHECKING to import AppContext only for type hinting, avoiding circular import at runtime
-if TYPE_CHECKING:
-    pass  # No specific type hints needed here currently
 
 logger = logging.getLogger(__name__)
 
@@ -60,21 +46,4 @@ def register_mcp_handlers(mcp_server: FastMCP):
     logger.info("MCP handlers registration complete.")
 
 
-# --- Global Component Setter (Called during server lifespan) ---
-
-
-def set_global_components(
-    state_manager: StateManager,
-    planner: Planner,
-    directive_builder: DirectiveBuilder,
-    report_handler: ReportHandler,
-    knowledge_base: KnowledgeBase,
-):
-    """Sets the component instances in the central registry (core.instances)."""
-    # No need for 'global' keyword anymore
-    instances.state_manager = state_manager
-    instances.planner = planner
-    instances.directive_builder = directive_builder
-    instances.report_handler = report_handler
-    instances.knowledge_base = knowledge_base
-    logger.debug("Component instances set in core.instances registry.")
+# --- Global Component Setter (REMOVED - Components set directly in server.py) ---

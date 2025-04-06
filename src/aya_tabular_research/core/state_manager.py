@@ -106,10 +106,7 @@ class StateManager:
         """Returns the list of tool names available for a given status."""
         mapping = {
             OverallStatus.AWAITING_TASK_DEFINITION: ["research/define_task"],
-            OverallStatus.AWAITING_DIRECTIVE: [
-                "research/preview_results",
-                "research/export_results",
-            ],
+            OverallStatus.AWAITING_DIRECTIVE: [],  # Removed preview/export - only allowed in CLARIFICATION or COMPLETE
             OverallStatus.CONDUCTING_INQUIRY: ["research/submit_inquiry_report"],
             OverallStatus.AWAITING_USER_CLARIFICATION: [
                 "research/submit_user_clarification",

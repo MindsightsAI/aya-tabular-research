@@ -1,4 +1,3 @@
-# Standard library imports
 import datetime  # Need datetime for timestamp
 import json  # Need json for CSV serialization
 import logging
@@ -255,12 +254,38 @@ async def handle_submit_inquiry_report(
             )
 
         if strategic_decision:
-            logger.info(f"Acting on client strategic decision: {strategic_decision}")
-            if strategic_decision == "FINALIZE":
+            logger.info(f"Processing client strategic decision: {strategic_decision}")
+            # Prepare client assessment dictionary to pass to the planner
+            client_assessment = {
+                "discovery_needed": strategic_decision == "DISCOVER",
+                "enrichment_needed": strategic_decision
+                in ["ENRICH", "ENRICH_SPECIFIC"],
+                "prioritized_enrichment_targets": (
+                    strategic_targets
+                    if strategic_decision == "ENRICH_SPECIFIC"
+                    else None
+                ),
+                "request_user_clarification": strategic_decision == "CLARIFY_USER",
+                "goal_achieved": strategic_decision == "FINALIZE",
+            }
+            # Call the main planner logic, passing the client's strategic intent
+            planner_signal_tuple = planner.determine_next_directive(
+                client_assessment=client_assessment
+            )
+            # Process the planner's signal based on the client's decision
+            if planner_signal_tuple == "CLARIFICATION_NEEDED":
+                await state_manager.request_clarification(
+                    "Planner requires clarification based on strategic decision outcome."
+                )
+                result_status = (
+                    research_models.RequestDirectiveResultStatus.CLARIFICATION_NEEDED
+                )
+            elif planner_signal_tuple is None:
                 await state_manager.complete_research()
                 result_status = (
                     research_models.RequestDirectiveResultStatus.RESEARCH_COMPLETE
                 )
+                # Create completion directive payload for consistency
                 next_directive_payload = InstructionObjectV3(
                     research_goal_context=task_def.task_description,
                     inquiry_focus="Research Complete. Please export or preview the results.",
@@ -268,58 +293,12 @@ async def handle_submit_inquiry_report(
                         "research/preview_results",
                         "research/export_results",
                     ],
-                    directive_type=DirectiveType.COMPLETION,  # Using COMPLETION as placeholder type
+                    directive_type=DirectiveType.COMPLETION,
                 )
-                logger.info(
-                    f"FINALIZE_DEBUG: Set next_directive_payload after FINALIZE: {next_directive_payload.model_dump_json(indent=2) if next_directive_payload else 'None'}"
-                )
-            elif strategic_decision == "DISCOVER":
-                discovery_payload = planner._plan_discovery()
-                planner_signal = (
-                    DirectiveType.DISCOVERY,
-                    discovery_payload,
-                )  # Use Enum in tuple
-            elif strategic_decision == "ENRICH":
-                enrichment_outcome = planner._plan_enrichment()
-                if isinstance(enrichment_outcome, tuple):
-                    planner_signal = ("ENRICH", enrichment_outcome)
-                elif enrichment_outcome == "CLARIFICATION_NEEDED":
-                    await state_manager.request_clarification(
-                        "Planner requires clarification to proceed with enrichment."
-                    )
-                    result_status = (
-                        research_models.RequestDirectiveResultStatus.CLARIFICATION_NEEDED
-                    )
-                else:  # Assume completion if not tuple or clarification
-                    await state_manager.complete_research()
-                    result_status = (
-                        research_models.RequestDirectiveResultStatus.RESEARCH_COMPLETE
-                    )
-            elif strategic_decision == "ENRICH_SPECIFIC":
-                enrichment_outcome = planner._plan_enrichment(
-                    priority_targets=strategic_targets or []
-                )
-                if isinstance(enrichment_outcome, tuple):
-                    planner_signal = ("ENRICH", enrichment_outcome)
-                elif enrichment_outcome == "CLARIFICATION_NEEDED":
-                    await state_manager.request_clarification(
-                        "Planner requires clarification for specific enrichment targets."
-                    )
-                    result_status = (
-                        research_models.RequestDirectiveResultStatus.CLARIFICATION_NEEDED
-                    )
-                else:  # Assume completion
-                    await state_manager.complete_research()
-                    result_status = (
-                        research_models.RequestDirectiveResultStatus.RESEARCH_COMPLETE
-                    )
-            elif strategic_decision == "CLARIFY_USER":
-                await state_manager.request_clarification(
-                    "Client requested user clarification during strategic review."
-                )
-                result_status = (
-                    research_models.RequestDirectiveResultStatus.CLARIFICATION_NEEDED
-                )
+            else:
+                # Planner returned a directive signal (ENRICH, DISCOVERY, NEEDS_STRATEGIC_REVIEW)
+                planner_signal = planner_signal_tuple
+                # result_status will be set later when the directive is built
 
         elif resulting_status == OverallStatus.AWAITING_DIRECTIVE:
             logger.debug("Report processed, planning next directive.")
@@ -750,7 +729,9 @@ async def handle_export_results(args: ExportResultsArgs, ctx: Context) -> Export
         # Prepare DataFrame for export (reset index)
         df_export = all_data_df  # Default to original df if empty
         if not all_data_df.empty:
-            df_export = all_data_df.reset_index()  # Flatten index into columns
+            df_export = all_data_df.reset_index(
+                drop=True
+            )  # Flatten index into columns, DISCARDING the index
             logger.debug(
                 f"DataFrame index reset for export. Columns: {df_export.columns.tolist()}"
             )
@@ -824,7 +805,7 @@ async def handle_export_results(args: ExportResultsArgs, ctx: Context) -> Export
                 data=op_data,
             ) from unexpected_write_err
 
-        return ExportResult(file_path=full_file_path)
+        return ExportResult(file_path=str(full_file_path))
 
     except (AYAServerError, PydanticValidationError, Exception) as e:
         # Log the original error before handling

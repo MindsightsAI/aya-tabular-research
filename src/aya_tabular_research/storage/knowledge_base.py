@@ -466,10 +466,10 @@ class TabularKnowledgeBase(KnowledgeBase):
 
     def get_entity_profile(
         self, entity_id: str
-    ) -> Optional[Union[Dict[str, Any], List[Dict[str, Any]]]]:
+    ) -> Optional[Dict[str, Any]]:  # MODIFIED: Always return dict or None
         """
-        Retrieves entity data from the DataStore. Handles single/multi-index.
-        For MultiIndex, returns a list of dictionaries, one for each row.
+        Retrieves entity data from the DataStore, handling single/multi-index.
+        For MultiIndex, returns a dictionary representing the *first* row found.
         For SingleIndex, returns a single dictionary.
         Internal columns (like findings, obstacles) contain Python objects.
         """
@@ -482,15 +482,17 @@ class TabularKnowledgeBase(KnowledgeBase):
             if entity_data is None:
                 return None
             elif isinstance(entity_data, pd.DataFrame):
-                # MultiIndex case: return list of dictionaries
+                # MultiIndex case: return dictionary of the first row
                 if not entity_data.empty:
+                    first_row = entity_data.iloc[0]
                     # Convert potential NaNs/NaTs to None before dict conversion
-                    # Use where across the DataFrame before converting
-                    return entity_data.where(pd.notna(entity_data), None).to_dict(
-                        orient="records"
-                    )
+                    return first_row.where(pd.notna(first_row), None).to_dict()
                 else:
-                    return []  # Return empty list for empty DataFrame slice
+                    # If the DataFrame slice was empty (shouldn't happen if ID exists), return None
+                    logger.warning(
+                        f"get_entity_data returned empty DataFrame for '{entity_id}'. Returning None profile."
+                    )
+                    return None
             elif isinstance(entity_data, dict):
                 # Single index case: already a dict
                 return entity_data
