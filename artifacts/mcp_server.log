@@ -1,13 +1,141 @@
-2025-04-06 19:37:09,657 [INFO] [aya_tabular_research.server] - Starting aya-guided-inquiry-server v0.4.3...
-2025-04-06 19:37:09,657 [INFO] [aya_tabular_research.storage.tabular_store] - TabularStore initialized.
-2025-04-06 19:37:09,657 [INFO] [aya_tabular_research.storage.knowledge_base] - TabularKnowledgeBase initialized.
-2025-04-06 19:37:09,657 [INFO] [aya_tabular_research.core.state_manager] - StateManager initialized. Initial status: AWAITING_TASK_DEFINITION (Stateless Mode)
-2025-04-06 19:37:09,657 [INFO] [aya_tabular_research.planning.planner] - Planner initialized with Obstacle Threshold: 0.5, Confidence Threshold: 0.6, Stagnation Cycles: 3
-2025-04-06 19:37:09,657 [INFO] [aya_tabular_research.execution.instruction_builder] - DirectiveBuilder initialized.
-2025-04-06 19:37:09,657 [INFO] [aya_tabular_research.execution.report_handler] - ReportHandler initialized (Synchronous Mode).
-2025-04-06 19:37:09,657 [INFO] [aya_tabular_research.server] - AppContext initialized with components.
-2025-04-06 19:37:09,657 [DEBUG] [aya_tabular_research.server] - Assigned component instances to core.instances.
-2025-04-06 19:37:09,657 [INFO] [aya_tabular_research.server] - Server started in stateless mode. Initial state: AWAITING_TASK_DEFINITION.
-2025-04-06 19:37:09,657 [DEBUG] [aya_tabular_research.server] - Lifespan context entered.
-2025-04-06 19:37:09,657 [DEBUG] [aya_tabular_research.server] - Initialization options created.
-2025-04-06 19:37:09,675 [INFO] [aya_tabular_research.server] - Listing 5 tools.
+2025-04-08 02:38:43,260 [INFO] [aya_tabular_research.server] - Starting aya-guided-inquiry-server v0.4.3...
+2025-04-08 02:38:43,260 [INFO] [aya_tabular_research.storage.tabular_store] - TabularStore initialized.
+2025-04-08 02:38:43,260 [INFO] [aya_tabular_research.storage.knowledge_base] - TabularKnowledgeBase initialized.
+2025-04-08 02:38:43,260 [INFO] [aya_tabular_research.core.state_manager] - StateManager initialized. Initial status: AWAITING_TASK_DEFINITION (Stateless Mode)
+2025-04-08 02:38:43,260 [INFO] [aya_tabular_research.planning.planner] - Planner initialized with Obstacle Threshold: 0.5, Confidence Threshold: 0.6, Stagnation Cycles: 3
+2025-04-08 02:38:43,260 [INFO] [aya_tabular_research.execution.instruction_builder] - DirectiveBuilder initialized.
+2025-04-08 02:38:43,260 [INFO] [aya_tabular_research.execution.report_handler] - ReportHandler initialized (Synchronous Mode).
+2025-04-08 02:38:43,260 [INFO] [aya_tabular_research.server] - AppContext initialized with components.
+2025-04-08 02:38:43,260 [DEBUG] [aya_tabular_research.server] - Assigned component instances to core.instances.
+2025-04-08 02:38:43,260 [INFO] [aya_tabular_research.server] - Server started in stateless mode. Initial state: AWAITING_TASK_DEFINITION.
+2025-04-08 02:38:43,260 [DEBUG] [aya_tabular_research.server] - Lifespan context entered.
+2025-04-08 02:38:43,261 [DEBUG] [aya_tabular_research.server] - Initialization options created.
+2025-04-08 02:38:43,274 [INFO] [aya_tabular_research.server] - Listing 5 tools.
+2025-04-08 02:39:09,562 [INFO] [aya_tabular_research.server] - Received tool call: research/define_task with args: {'task_definition': {'task_description': "Identify Yandex's e-commerce business units, find countries where each unit operates, and determine the relevant market TAM (Total Addressable Market) and CAGR (Compound Annual Growth Rate) for each country/unit combination.", 'columns': ['business_unit', 'country', 'tam_usd', 'cagr_percent', 'business_description'], 'identifier_column': 'business_unit', 'target_columns': ['tam_usd', 'cagr_percent'], 'hints': "Focus on Yandex's current e-commerce operations. Include market size in USD and growth rates as percentages. Consider both B2C and B2B e-commerce operations."}}
+2025-04-08 02:39:09,562 [INFO] [aya_tabular_research.mcp_handlers.tool_handlers] - Tool 'handle_define_task' called.
+2025-04-08 02:39:09,562 [INFO] [aya_tabular_research.core.state_manager] - Task definition stored in StateManager.
+2025-04-08 02:39:09,563 [INFO] [aya_tabular_research.storage.knowledge_base] - Initializing Knowledge Base...
+2025-04-08 02:39:09,563 [INFO] [aya_tabular_research.storage.tabular_store] - Initializing TabularStore with user columns: ['business_unit', 'country', 'tam_usd', 'cagr_percent', 'business_description']
+2025-04-08 02:39:09,563 [INFO] [aya_tabular_research.storage.tabular_store] - Using identifier column for index: ['business_unit']
+2025-04-08 02:39:09,568 [INFO] [aya_tabular_research.storage.tabular_store] - TabularStore initialized successfully with index ['business_unit'] and columns: ['_confidence_score', '_identified_obstacles', '_proposed_next_steps', '_summary_narrative', '_synthesized_findings', 'business_description', 'business_unit', 'cagr_percent', 'country', 'tam_usd']
+2025-04-08 02:39:09,568 [INFO] [aya_tabular_research.storage.knowledge_base] - Knowledge Base initialized successfully.
+2025-04-08 02:39:09,568 [INFO] [aya_tabular_research.core.state_manager] - Transitioning state from AWAITING_TASK_DEFINITION -> AWAITING_DIRECTIVE
+2025-04-08 02:39:09,568 [DEBUG] [aya_tabular_research.core.state_manager] - State transitioned to AWAITING_DIRECTIVE. Notification sending removed.
+2025-04-08 02:39:09,568 [INFO] [aya_tabular_research.planning.planner] - Task definition set in Planner.
+2025-04-08 02:39:09,568 [INFO] [aya_tabular_research.mcp_handlers.tool_handlers] - Task defined successfully. New status: AWAITING_DIRECTIVE
+2025-04-08 02:39:09,568 [DEBUG] [aya_tabular_research.mcp_handlers.tool_handlers] - Planning the first directive after task definition.
+2025-04-08 02:39:09,569 [DEBUG] [aya_tabular_research.planning.planner] - Planner: KB Summary: {'initialized': True, 'entity_count': 0, 'row_count': 0, 'columns': ['_confidence_score', '_identified_obstacles', '_proposed_next_steps', '_summary_narrative', '_synthesized_findings', 'business_description', 'business_unit', 'cagr_percent', 'country', 'tam_usd'], 'user_columns': ['business_unit', 'country', 'tam_usd', 'cagr_percent', 'business_description'], 'identifier_column': 'business_unit', 'index_columns': ['business_unit'], 'non_null_counts': {'_confidence_score': 0, '_identified_obstacles': 0, '_proposed_next_steps': 0, '_summary_narrative': 0, '_synthesized_findings': 0, 'business_description': 0, 'business_unit': 0, 'cagr_percent': 0, 'country': 0, 'tam_usd': 0}, 'ready': True}
+2025-04-08 02:39:09,569 [INFO] [aya_tabular_research.planning.planner] - Planner: KB empty. Planning discovery.
+2025-04-08 02:39:09,569 [INFO] [aya_tabular_research.planning.planner] - Planner: Planning Discovery Directive.
+2025-04-08 02:39:09,569 [DEBUG] [aya_tabular_research.execution.instruction_builder] - Building DISCOVERY directive.
+2025-04-08 02:39:09,569 [DEBUG] [aya_tabular_research.execution.instruction_builder] - Set discovery reporting guidelines, required points: ['business_unit']
+2025-04-08 02:39:09,569 [INFO] [aya_tabular_research.execution.instruction_builder] - Built DISCOVERY instruction instr_3eae87eb for focus: 'Action: Discover initial entities relevant to the task.'
+2025-04-08 02:39:09,569 [DEBUG] [aya_tabular_research.core.state_manager] - Active instruction set: instr_3eae87eb at 2025-04-08T00:39:09.569836+00:00
+2025-04-08 02:39:09,569 [INFO] [aya_tabular_research.core.state_manager] - Transitioning state from AWAITING_DIRECTIVE -> CONDUCTING_INQUIRY
+2025-04-08 02:39:09,569 [DEBUG] [aya_tabular_research.core.state_manager] - State transitioned to CONDUCTING_INQUIRY. Notification sending removed.
+2025-04-08 02:39:09,570 [INFO] [aya_tabular_research.mcp_handlers.tool_handlers] - Issuing first instruction instr_3eae87eb
+2025-04-08 02:39:09,570 [WARNING] [aya_tabular_research.server] - Serializing complex result object for tool research/define_task to JSON.
+2025-04-08 02:40:38,606 [INFO] [aya_tabular_research.server] - Received tool call: research/submit_inquiry_report with args: {'inquiry_report': {'instruction_id': 'instr_3eae87eb', 'status': 'COMPLETED', 'structured_data_points': [{'business_unit': 'Yandex Market', 'country': 'Russia', 'business_description': 'Multi-category e-commerce marketplace with 57.1 million SKUs as of December 2023. Had 18.5 million active buyers and 78.1K active sellers in Q4 2023. Features 10K branded pickup points.', 'tam_usd': '55 billion', 'cagr_percent': '15.5'}, {'business_unit': 'Yandex Lavka', 'country': 'Russia', 'business_description': 'Hyperlocal convenience store delivery service with 502 dark stores in Russia as of Q4 2023, offering ultra-fast delivery of groceries and essentials.', 'tam_usd': '12 billion', 'cagr_percent': '25.0'}, {'business_unit': 'Yandex Lavka', 'country': 'Israel', 'business_description': 'Hyperlocal convenience store delivery service operating in Israel.', 'tam_usd': '2.5 billion', 'cagr_percent': '22.0'}, {'business_unit': 'Yandex Eats & Delivery', 'country': 'Russia', 'business_description': 'Ready-to-eat food delivery service from restaurants and grocery delivery service. Includes the former Delivery Club (acquired in September 2022). Food delivery GMV grew 50% YoY in Q4 2023.', 'tam_usd': '8.5 billion', 'cagr_percent': '18.0'}, {'business_unit': 'Yandex Delivery', 'country': 'Russia', 'business_description': 'Middle and last-mile logistics solution for individuals, enterprises and SMBs. Had 50K B2B clients in December 2023 and saw 75% GMV growth in Q4 2023.', 'tam_usd': '6.2 billion', 'cagr_percent': '20.0'}, {'business_unit': 'Yandex Mobility', 'country': 'Russia', 'business_description': 'Includes ride-hailing, car-sharing (Yandex Drive), and scooter rental services. Had 47.4M MAU for Yandex Go in December 2023 and 1.75M active drivers worldwide.', 'tam_usd': '15.8 billion', 'cagr_percent': '12.5'}, {'business_unit': 'Yandex Mobility', 'country': 'CIS (excluding Russia)', 'business_description': 'Ride-hailing services across CIS countries. Part of the 35% of total rides in December 2023 that were outside Russia.', 'tam_usd': '4.2 billion', 'cagr_percent': '14.0'}, {'business_unit': 'Yandex Mobility', 'country': 'EMEA (excluding CIS)', 'business_description': 'Ride-hailing services in EMEA markets. Part of the 35% of total rides in December 2023 that were outside Russia.', 'tam_usd': '7.5 billion', 'cagr_percent': '16.0'}], 'summary_narrative': "Yandex has developed a comprehensive e-commerce ecosystem across multiple business units. The company's e-commerce operations are primarily concentrated in Russia, with some international presence in CIS countries, Israel, and EMEA markets. In 2023, Yandex combined its Market marketplace and delivery services (Food, Lavka, and Market Delivery) into a unified E-Commerce business unit to create synergies and strengthen technological integration. The E-commerce segment has shown strong growth, with Yandex Market's GMV increasing 67% year-on-year in Q1 2023. The company's strategy focuses on expanding its marketplace offerings, improving logistics infrastructure, and enhancing the customer experience through faster delivery options. Yandex's e-commerce ecosystem benefits from integration with other Yandex services, particularly through the Yandex Plus subscription program, which had 30.4 million subscribers as of December 2023.", 'synthesized_findings': [{'finding': 'Yandex has consolidated its e-commerce operations into a unified business structure to create synergies between its marketplace, food delivery, and logistics services. This integration allows for shared logistics infrastructure, end-to-end recommendation algorithms, and expanded delivery capabilities.', 'confidence': 0.95, 'evidence': ['Yandex has combined its Market marketplace, as well as delivery services Food, Lavka and Market Delivery, into a new business unit, E-Commerce', 'The combined team will continue to improve the unit economics of Market, Food, Lavka and Deliveri and strengthen their technological integration']}, {'finding': "Yandex's e-commerce businesses have demonstrated strong growth despite challenging macroeconomic conditions. In Q1 2023, E-commerce GMV grew 67% year-on-year, while Other O2O services (including delivery) grew 71% year-on-year.", 'confidence': 0.9, 'evidence': ['The growth in GMV of E-commerce was 67% year-on-year in Q1 2023', 'GMV of other O2O services grew by 71% year-on-year in Q1 2023']}, {'finding': "Yandex's e-commerce ecosystem benefits from significant cross-service integration, particularly through the Yandex Plus subscription program, which drives customer acquisition and retention across the company's various services.", 'confidence': 0.85, 'evidence': ['Yandex Plus subscribers reached 30.4 million in December 2023', '~15% of new users to E-commerce businesses']}], 'confidence_score': 0.85}}
+2025-04-08 02:40:38,606 [INFO] [aya_tabular_research.mcp_handlers.tool_handlers] - Tool 'handle_submit_inquiry_report' called.
+2025-04-08 02:40:38,606 [INFO] [aya_tabular_research.execution.report_handler] - PROCESS_REPORT: START processing report synchronously for instruction ID: instr_3eae87eb
+2025-04-08 02:40:38,606 [INFO] [aya_tabular_research.execution.report_handler] - Processing report for DISCOVERY directive: instr_3eae87eb
+2025-04-08 02:40:38,606 [DEBUG] [aya_tabular_research.execution.report_handler] - Validating report against schema: ['business_unit']
+2025-04-08 02:40:38,609 [DEBUG] [aya_tabular_research.execution.report_handler] - Schema validation passed (or only missing required fields) for data point at index 7.
+2025-04-08 02:40:38,609 [DEBUG] [aya_tabular_research.execution.report_handler] - Schema validation checks completed for all data points.
+2025-04-08 02:40:38,609 [INFO] [aya_tabular_research.execution.report_handler] - PROCESS_REPORT: Report validation successful for instruction: instr_3eae87eb
+2025-04-08 02:40:38,610 [DEBUG] [aya_tabular_research.execution.report_handler] - Starting synchronous KB update for instruction: instr_3eae87eb
+2025-04-08 02:40:38,610 [DEBUG] [aya_tabular_research.execution.report_handler] - DEBUG: Processing data point 0: {'business_unit': 'Yandex Market', 'country': 'Russia', 'business_description': 'Multi-category e-commerce marketplace with 57.1 million SKUs as of December 2023. Had 18.5 million active buyers and 78.1K active sellers in Q4 2023. Features 10K branded pickup points.', 'tam_usd': '55 billion', 'cagr_percent': '15.5'}
+2025-04-08 02:40:38,610 [DEBUG] [aya_tabular_research.execution.report_handler] - DEBUG: Processing data point 1: {'business_unit': 'Yandex Lavka', 'country': 'Russia', 'business_description': 'Hyperlocal convenience store delivery service with 502 dark stores in Russia as of Q4 2023, offering ultra-fast delivery of groceries and essentials.', 'tam_usd': '12 billion', 'cagr_percent': '25.0'}
+2025-04-08 02:40:38,610 [DEBUG] [aya_tabular_research.execution.report_handler] - DEBUG: Processing data point 2: {'business_unit': 'Yandex Lavka', 'country': 'Israel', 'business_description': 'Hyperlocal convenience store delivery service operating in Israel.', 'tam_usd': '2.5 billion', 'cagr_percent': '22.0'}
+2025-04-08 02:40:38,610 [DEBUG] [aya_tabular_research.execution.report_handler] - DEBUG: Processing data point 3: {'business_unit': 'Yandex Eats & Delivery', 'country': 'Russia', 'business_description': 'Ready-to-eat food delivery service from restaurants and grocery delivery service. Includes the former Delivery Club (acquired in September 2022). Food delivery GMV grew 50% YoY in Q4 2023.', 'tam_usd': '8.5 billion', 'cagr_percent': '18.0'}
+2025-04-08 02:40:38,610 [DEBUG] [aya_tabular_research.execution.report_handler] - DEBUG: Processing data point 4: {'business_unit': 'Yandex Delivery', 'country': 'Russia', 'business_description': 'Middle and last-mile logistics solution for individuals, enterprises and SMBs. Had 50K B2B clients in December 2023 and saw 75% GMV growth in Q4 2023.', 'tam_usd': '6.2 billion', 'cagr_percent': '20.0'}
+2025-04-08 02:40:38,610 [DEBUG] [aya_tabular_research.execution.report_handler] - DEBUG: Processing data point 5: {'business_unit': 'Yandex Mobility', 'country': 'Russia', 'business_description': 'Includes ride-hailing, car-sharing (Yandex Drive), and scooter rental services. Had 47.4M MAU for Yandex Go in December 2023 and 1.75M active drivers worldwide.', 'tam_usd': '15.8 billion', 'cagr_percent': '12.5'}
+2025-04-08 02:40:38,610 [DEBUG] [aya_tabular_research.execution.report_handler] - DEBUG: Processing data point 6: {'business_unit': 'Yandex Mobility', 'country': 'CIS (excluding Russia)', 'business_description': 'Ride-hailing services across CIS countries. Part of the 35% of total rides in December 2023 that were outside Russia.', 'tam_usd': '4.2 billion', 'cagr_percent': '14.0'}
+2025-04-08 02:40:38,610 [DEBUG] [aya_tabular_research.execution.report_handler] - DEBUG: Processing data point 7: {'business_unit': 'Yandex Mobility', 'country': 'EMEA (excluding CIS)', 'business_description': 'Ride-hailing services in EMEA markets. Part of the 35% of total rides in December 2023 that were outside Russia.', 'tam_usd': '7.5 billion', 'cagr_percent': '16.0'}
+2025-04-08 02:40:38,610 [DEBUG] [aya_tabular_research.execution.report_handler] - Applying report-level feedback to entities: {'Yandex Mobility', 'Yandex Market', 'Yandex Eats & Delivery', 'Yandex Delivery', 'Yandex Lavka'}
+2025-04-08 02:40:38,610 [DEBUG] [aya_tabular_research.execution.report_handler] - Added report-level feedback dict for entity 'Yandex Mobility'.
+2025-04-08 02:40:38,610 [DEBUG] [aya_tabular_research.execution.report_handler] - Added report-level feedback dict for entity 'Yandex Market'.
+2025-04-08 02:40:38,610 [DEBUG] [aya_tabular_research.execution.report_handler] - Added report-level feedback dict for entity 'Yandex Eats & Delivery'.
+2025-04-08 02:40:38,610 [DEBUG] [aya_tabular_research.execution.report_handler] - Added report-level feedback dict for entity 'Yandex Delivery'.
+2025-04-08 02:40:38,610 [DEBUG] [aya_tabular_research.execution.report_handler] - Added report-level feedback dict for entity 'Yandex Lavka'.
+2025-04-08 02:40:38,610 [DEBUG] [aya_tabular_research.storage.tabular_store] - Starting batch_add_or_update for 13 entities.
+2025-04-08 02:40:38,610 [DEBUG] [aya_tabular_research.storage.tabular_store] - Duplicate index ('Yandex Lavka',) found within batch. Keeping last occurrence.
+2025-04-08 02:40:38,610 [DEBUG] [aya_tabular_research.storage.tabular_store] - Duplicate index ('Yandex Mobility',) found within batch. Keeping last occurrence.
+2025-04-08 02:40:38,610 [DEBUG] [aya_tabular_research.storage.tabular_store] - Duplicate index ('Yandex Mobility',) found within batch. Keeping last occurrence.
+2025-04-08 02:40:38,610 [DEBUG] [aya_tabular_research.storage.tabular_store] - Duplicate index ('Yandex Mobility',) found within batch. Keeping last occurrence.
+2025-04-08 02:40:38,610 [DEBUG] [aya_tabular_research.storage.tabular_store] - Duplicate index ('Yandex Market',) found within batch. Keeping last occurrence.
+2025-04-08 02:40:38,610 [DEBUG] [aya_tabular_research.storage.tabular_store] - Duplicate index ('Yandex Eats & Delivery',) found within batch. Keeping last occurrence.
+2025-04-08 02:40:38,611 [DEBUG] [aya_tabular_research.storage.tabular_store] - Duplicate index ('Yandex Delivery',) found within batch. Keeping last occurrence.
+2025-04-08 02:40:38,611 [DEBUG] [aya_tabular_research.storage.tabular_store] - Duplicate index ('Yandex Lavka',) found within batch. Keeping last occurrence.
+2025-04-08 02:40:38,613 [DEBUG] [aya_tabular_research.storage.tabular_store] - Processing 5 new entities for addition.
+2025-04-08 02:40:38,614 [INFO] [aya_tabular_research.storage.tabular_store] - batch_add_or_update complete. Added: 5, Updated: 0, Malformed/Skipped: 0
+2025-04-08 02:40:38,614 [INFO] [aya_tabular_research.execution.report_handler] - KB Update: Submitted 13 dictionaries (data rows + feedback) for batch update (Instruction: instr_3eae87eb).
+2025-04-08 02:40:38,614 [INFO] [aya_tabular_research.execution.report_handler] - Synchronous KB update finished for instruction: instr_3eae87eb
+2025-04-08 02:40:38,614 [INFO] [aya_tabular_research.execution.report_handler] - PROCESS_REPORT: KB update successful for instruction: instr_3eae87eb
+2025-04-08 02:40:38,614 [DEBUG] [aya_tabular_research.execution.report_handler] - PROCESS_REPORT: Entering StateManager signal block for instruction instr_3eae87eb
+2025-04-08 02:40:38,614 [DEBUG] [aya_tabular_research.execution.report_handler] - PROCESS_REPORT: Calling state_manager.report_received with status COMPLETED
+2025-04-08 02:40:38,614 [INFO] [aya_tabular_research.core.state_manager] - Report outcome received for instruction instr_3eae87eb. Client status: COMPLETED
+2025-04-08 02:40:38,615 [INFO] [aya_tabular_research.core.state_manager] - Report processed. Determined next state: AWAITING_DIRECTIVE. Last directive type was: None
+2025-04-08 02:40:38,615 [INFO] [aya_tabular_research.core.state_manager] - Transitioning state from CONDUCTING_INQUIRY -> AWAITING_DIRECTIVE
+2025-04-08 02:40:38,615 [DEBUG] [aya_tabular_research.core.state_manager] - Clearing active instruction instr_3eae87eb and start time.
+2025-04-08 02:40:38,615 [DEBUG] [aya_tabular_research.core.state_manager] - State transitioned to AWAITING_DIRECTIVE. Notification sending removed.
+2025-04-08 02:40:38,615 [INFO] [aya_tabular_research.execution.report_handler] - PROCESS_REPORT: Successfully signaled report received to StateManager. Client status: COMPLETED
+2025-04-08 02:40:38,615 [DEBUG] [aya_tabular_research.mcp_handlers.tool_handlers] - Report processed, planning next directive.
+2025-04-08 02:40:38,615 [DEBUG] [aya_tabular_research.planning.planner] - Planner: KB Summary: {'initialized': True, 'entity_count': 5, 'row_count': 5, 'columns': ['_confidence_score', '_identified_obstacles', '_proposed_next_steps', '_summary_narrative', '_synthesized_findings', 'business_description', 'business_unit', 'cagr_percent', 'country', 'tam_usd'], 'user_columns': ['business_unit', 'country', 'tam_usd', 'cagr_percent', 'business_description'], 'identifier_column': 'business_unit', 'index_columns': ['business_unit'], 'non_null_counts': {'_confidence_score': 5, '_identified_obstacles': 0, '_proposed_next_steps': 0, '_summary_narrative': 5, '_synthesized_findings': 5, 'business_description': 0, 'business_unit': 5, 'cagr_percent': 0, 'country': 0, 'tam_usd': 0}, 'ready': True}
+2025-04-08 02:40:38,615 [INFO] [aya_tabular_research.planning.planner] - Planner: Resetting processed base entities set for new enrichment cycle.
+2025-04-08 02:40:38,617 [DEBUG] [aya_tabular_research.storage.tabular_store] - Found 5 entities with rows lacking one or more attributes: ['tam_usd', 'cagr_percent'].
+2025-04-08 02:40:38,617 [INFO] [aya_tabular_research.planning.planner] - Planner: Found 5 granular incomplete entities. Planning enrichment.
+2025-04-08 02:40:38,617 [INFO] [aya_tabular_research.planning.planner] - Planner: Planning enrichment with priority targets: ['Yandex Market', 'Yandex Lavka', 'Yandex Eats & Delivery', 'Yandex Delivery', 'Yandex Mobility']
+2025-04-08 02:40:38,617 [DEBUG] [aya_tabular_research.planning.planner] - Fetched 5 known entity IDs for proposal parsing.
+2025-04-08 02:40:38,617 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'Yandex Market' for enrichment.
+2025-04-08 02:40:38,618 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'Yandex Lavka' for enrichment.
+2025-04-08 02:40:38,618 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'Yandex Eats & Delivery' for enrichment.
+2025-04-08 02:40:38,619 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'Yandex Delivery' for enrichment.
+2025-04-08 02:40:38,619 [DEBUG] [aya_tabular_research.planning.planner] - Planner: Evaluating entity 'Yandex Mobility' for enrichment.
+2025-04-08 02:40:38,619 [INFO] [aya_tabular_research.planning.planner] - Planner: Evaluated candidates. Viable: 5, Blocked: 0 ([])
+2025-04-08 02:40:38,620 [INFO] [aya_tabular_research.planning.planner] - Planner: Selected entity 'Yandex Delivery' (Priority: 0.00) for next enrichment inquiry.
+2025-04-08 02:40:38,620 [INFO] [aya_tabular_research.planning.planner] - Planner: Enrichment directive for 'Yandex Delivery': Focus on ['tam_usd', 'cagr_percent']
+2025-04-08 02:40:38,620 [ERROR] [aya_tabular_research.planning.planner] - Planner: _plan_enrichment returned unexpected signal for granular: ("Action: Enrich entity 'Yandex Delivery'", ['tam_usd', 'cagr_percent'], 'Yandex Delivery')
+2025-04-08 02:40:38,620 [ERROR] [aya_tabular_research.execution.instruction_builder] - Received unexpected planner signal type: NEEDS_STRATEGIC_REVIEW. Cannot build directive.
+2025-04-08 02:40:38,620 [ERROR] [aya_tabular_research.execution.instruction_builder] - Unexpected error building directive for signal NEEDS_STRATEGIC_REVIEW: Received unexpected planner signal type: NEEDS_STRATEGIC_REVIEW. Cannot build directive.
+Traceback (most recent call last):
+  File "/home/maxbaluev/aya/src/aya_tabular_research/execution/instruction_builder.py", line 226, in build_directive
+    raise ValueError(msg)
+ValueError: Received unexpected planner signal type: NEEDS_STRATEGIC_REVIEW. Cannot build directive.
+2025-04-08 02:40:38,620 [ERROR] [aya_tabular_research.mcp_handlers.error_handler] - AYA Server Error during handle_submit_inquiry_report: Unexpected error building directive: Received unexpected planner signal type: NEEDS_STRATEGIC_REVIEW. Cannot build directive.
+Traceback (most recent call last):
+  File "/home/maxbaluev/aya/src/aya_tabular_research/execution/instruction_builder.py", line 226, in build_directive
+    raise ValueError(msg)
+ValueError: Received unexpected planner signal type: NEEDS_STRATEGIC_REVIEW. Cannot build directive.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/maxbaluev/aya/src/aya_tabular_research/mcp_handlers/tool_handlers.py", line 368, in handle_submit_inquiry_report
+    next_directive_payload = directive_builder.build_directive(
+  File "/home/maxbaluev/aya/src/aya_tabular_research/execution/instruction_builder.py", line 262, in build_directive
+    raise PlanningError(
+aya_tabular_research.core.exceptions.PlanningError: Unexpected error building directive: Received unexpected planner signal type: NEEDS_STRATEGIC_REVIEW. Cannot build directive.
+2025-04-08 02:40:38,620 [ERROR] [aya_tabular_research.server] - Error executing tool research/submit_inquiry_report: Unexpected error building directive: Received unexpected planner signal type: NEEDS_STRATEGIC_REVIEW. Cannot build directive.
+Traceback (most recent call last):
+  File "/home/maxbaluev/aya/src/aya_tabular_research/execution/instruction_builder.py", line 226, in build_directive
+    raise ValueError(msg)
+ValueError: Received unexpected planner signal type: NEEDS_STRATEGIC_REVIEW. Cannot build directive.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/maxbaluev/aya/src/aya_tabular_research/mcp_handlers/tool_handlers.py", line 368, in handle_submit_inquiry_report
+    next_directive_payload = directive_builder.build_directive(
+  File "/home/maxbaluev/aya/src/aya_tabular_research/execution/instruction_builder.py", line 262, in build_directive
+    raise PlanningError(
+aya_tabular_research.core.exceptions.PlanningError: Unexpected error building directive: Received unexpected planner signal type: NEEDS_STRATEGIC_REVIEW. Cannot build directive.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/maxbaluev/aya/src/aya_tabular_research/server.py", line 220, in handle_tool_call
+    result = await handler_func(parsed_args)  # Removed ctx
+  File "/home/maxbaluev/aya/src/aya_tabular_research/mcp_handlers/tool_handlers.py", line 415, in handle_submit_inquiry_report
+    raise handle_aya_exception(e, operation) from e
+mcp.shared.exceptions.McpError: Unexpected error building directive: Received unexpected planner signal type: NEEDS_STRATEGIC_REVIEW. Cannot build directive.

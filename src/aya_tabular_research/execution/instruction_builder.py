@@ -7,7 +7,7 @@ from typing import Union
 from ..core.exceptions import KBInteractionError, PlanningError
 
 # Import necessary models and types
-from ..core.models.enums import DirectiveType  # Import the new Enum
+from ..core.models.enums import DirectiveType, StrategicDecisionOption  # Import Enums
 from ..core.models.error_models import OperationalErrorData
 from ..core.models.research_models import StrategicReviewContext  # Added
 from ..core.models.research_models import StrategicReviewDirective  # Added
@@ -72,7 +72,7 @@ class DirectiveBuilder:
         signal_payload = planner_signal[1]
 
         try:  # Wrap the entire building process to catch KB errors
-            if signal_type == "ENRICH":
+            if signal_type == DirectiveType.ENRICHMENT:  # Use Enum
                 # --- Build Enrichment Directive ---
                 enrichment_content: EnrichmentDirectiveContent = signal_payload
                 inquiry_focus, focus_areas, target_entity_id = enrichment_content
@@ -101,7 +101,7 @@ class DirectiveBuilder:
                         f"Entity profile for '{target_entity_id}' exceeds {MAX_PROFILE_ROWS} rows. Sending summary context."
                     )
                     # Create a summary (example: first row + count)
-                    # TODO: Implement more sophisticated summarization if needed
+                    # TODO: Implement more sophisticated summarization
                     summary_context = {
                         "summary_type": "truncated_profile",
                         "total_rows": len(full_entity_profile),
@@ -138,7 +138,7 @@ class DirectiveBuilder:
                     f"Built ENRICH instruction {directive.instruction_id} for focus: '{inquiry_focus}'"
                 )
 
-            elif signal_type == "DISCOVERY":
+            elif signal_type == DirectiveType.DISCOVERY:  # Use Enum
                 # --- Build Discovery Directive ---
                 discovery_content: DiscoveryDirectiveContent = signal_payload
                 inquiry_focus, focus_areas, _ = discovery_content  # target_id is None
@@ -167,7 +167,7 @@ class DirectiveBuilder:
                     f"Built DISCOVERY instruction {directive.instruction_id} for focus: '{inquiry_focus}'"
                 )
 
-            elif signal_type == "NEEDS_STRATEGIC_REVIEW":
+            elif signal_type == DirectiveType.STRATEGIC_REVIEW:  # Use Enum
                 # --- Build Strategic Review Directive ---
                 review_reason: str = signal_payload
                 logger.debug(
@@ -196,13 +196,16 @@ class DirectiveBuilder:
                     incomplete_entities=incomplete_entities,  # Add incomplete entities list
                 )
 
+                # Dynamically generate the options string from the Enum
+                options_str = ", ".join(
+                    [option.value for option in StrategicDecisionOption]
+                )
                 focus_areas_review = [
                     f"Strategic Review Triggered: {review_reason}",
-                    "Review the context provided in the associated resource (KB Summary, Obstacles).",
-                    "Assess the overall research status against the goal.",
-                    "Decide the next strategic phase and report it using the 'strategic_decision' field.",
-                    "Options: FINALIZE, DISCOVER, ENRICH, ENRICH_SPECIFIC, CLARIFY_USER.",
-                    "If choosing ENRICH_SPECIFIC, also provide 'strategic_targets'.",
+                    "Review the embedded 'strategic_context' (KB Summary, Obstacles, Incomplete Entities).",
+                    "Assess the overall research status against the 'research_goal'.",
+                    f"Decide the next strategic phase by setting the 'strategic_decision' field in your report to one of: {options_str}.",
+                    f"If choosing '{StrategicDecisionOption.ENRICH_SPECIFIC.value}', also provide a list of entity IDs in 'strategic_targets'.",
                 ]
 
                 directive = StrategicReviewDirective(

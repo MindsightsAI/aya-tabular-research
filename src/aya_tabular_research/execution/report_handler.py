@@ -402,51 +402,125 @@ class ReportHandler:
                                 )
                                 malformed_count += 1
 
-                # --- Refactored: Integrate Feedback into Batch Update ---
-                # 2. Add Feedback Dictionary (if applicable)
-                if primary_entity_id_for_feedback:
-                    feedback_dict = {identifier_col: primary_entity_id_for_feedback}
-                    added_feedback = False
-                    # Pass raw list of dicts, preserving granularity keys
+                # --- Refined Feedback Handling (v2) ---
+                # 2. Apply Report-Level Feedback (Narrative, Confidence, Findings) per Entity
+                unique_ids_in_batch = set(
+                    entity.get(identifier_col)
+                    for entity in entities_to_update  # Check entities derived from structured_data_points
+                    if identifier_col in entity and pd.notna(entity.get(identifier_col))
+                )
+                # If no structured data yielded IDs, but we have a primary ID (e.g., from target_entity), use that
+                if not unique_ids_in_batch and primary_entity_id_for_feedback:
+                    unique_ids_in_batch = {primary_entity_id_for_feedback}
+                    logger.debug(
+                        f"Using primary entity ID '{primary_entity_id_for_feedback}' for report-level feedback as no structured data IDs found."
+                    )
+
+                report_level_feedback_exists = (
+                    report.summary_narrative is not None
+                    or report.confidence_score is not None
+                    or report.synthesized_findings  # Check if list is non-empty
+                )
+
+                if report_level_feedback_exists and unique_ids_in_batch:
+                    logger.debug(
+                        f"Applying report-level feedback to entities: {unique_ids_in_batch}"
+                    )
+                    for entity_id in unique_ids_in_batch:
+                        report_feedback_dict = {identifier_col: entity_id}
+                        added_report_feedback = False
+                        if report.summary_narrative is not None:
+                            report_feedback_dict[NARRATIVE_COL] = (
+                                report.summary_narrative
+                            )
+                            added_report_feedback = True
+                        if report.confidence_score is not None:
+                            report_feedback_dict[CONFIDENCE_COL] = (
+                                report.confidence_score
+                            )
+                            added_report_feedback = True
+                        if report.synthesized_findings:
+                            report_feedback_dict[FINDINGS_COL] = [
+                                f.model_dump() for f in report.synthesized_findings
+                            ]
+                            added_report_feedback = True
+
+                        if added_report_feedback:
+                            entities_to_update.append(report_feedback_dict)
+                            logger.debug(
+                                f"Added report-level feedback dict for entity '{entity_id}'."
+                            )
+
+                elif report_level_feedback_exists:
+                    logger.warning(
+                        f"KB Update: Report has report-level feedback but no entity IDs found in structured data or target (Instruction: {instruction_id}). Feedback not stored."
+                    )
+
+                # 3. Add List-Based Feedback (Obstacles, Proposals) for Primary Entity (if any)
+                list_feedback_exists = (
+                    report.identified_obstacles or report.proposed_next_steps
+                )
+                if list_feedback_exists and primary_entity_id_for_feedback:
+                    # Create ONE dictionary for list-based feedback, associated with the primary entity
+                    list_feedback_dict = {
+                        identifier_col: primary_entity_id_for_feedback
+                    }
+                    added_list_feedback = False
+                    # Pass raw list of dicts, preserving granularity keys for TabularStore
                     if report.identified_obstacles:
-                        feedback_dict[OBSTACLES_COL] = [
+                        list_feedback_dict[OBSTACLES_COL] = [
                             o.model_dump() for o in report.identified_obstacles
                         ]
-                        added_feedback = True
+                        added_list_feedback = True
                     if report.proposed_next_steps:
-                        feedback_dict[PROPOSALS_COL] = [
+                        list_feedback_dict[PROPOSALS_COL] = [
                             p.model_dump() for p in report.proposed_next_steps
                         ]
-                        added_feedback = True
-                    # Also include other feedback types previously handled separately
-                    if report.summary_narrative is not None:
-                        feedback_dict[NARRATIVE_COL] = report.summary_narrative
-                        added_feedback = True
-                    if report.synthesized_findings:
-                        feedback_dict[FINDINGS_COL] = [
-                            f.model_dump() for f in report.synthesized_findings
-                        ]
-                        added_feedback = True
-                    if report.confidence_score is not None:
-                        feedback_dict[CONFIDENCE_COL] = report.confidence_score
-                        added_feedback = True
+                        added_list_feedback = True
 
-                    if added_feedback:
+                    if added_list_feedback:
                         logger.debug(
-                            f"Adding feedback dictionary for entity '{primary_entity_id_for_feedback}' to batch update."
+                            f"Adding list-based feedback dictionary for primary entity '{primary_entity_id_for_feedback}' to batch update."
                         )
-                        entities_to_update.append(feedback_dict)
-                # Log warning if feedback exists but no entity ID was found
-                elif (
-                    report.identified_obstacles
-                    or report.proposed_next_steps
-                    or report.summary_narrative is not None
-                    or report.synthesized_findings
-                    or report.confidence_score is not None
-                ):
+                        # Check for duplicates before appending this specific dict type
+                        # This prevents adding the same obstacle/proposal list multiple times if the primary entity ID
+                        # was already added with other report-level feedback above.
+                        # We rely on TabularStore's internal duplicate handling based on index for the final merge.
+                        # Find if a dict with this primary ID already exists from the report-level feedback step
+                        existing_report_fb_dict_index = -1
+                        for i, entity_dict in enumerate(entities_to_update):
+                            if entity_dict.get(
+                                identifier_col
+                            ) == primary_entity_id_for_feedback and (
+                                NARRATIVE_COL in entity_dict
+                                or CONFIDENCE_COL in entity_dict
+                                or FINDINGS_COL in entity_dict
+                            ):
+                                existing_report_fb_dict_index = i
+                                break
+
+                        if existing_report_fb_dict_index != -1:
+                            # Merge list feedback into the existing report-level feedback dict
+                            logger.debug(
+                                f"Merging list-based feedback into existing report-level feedback dict for '{primary_entity_id_for_feedback}'."
+                            )
+                            if OBSTACLES_COL in list_feedback_dict:
+                                entities_to_update[existing_report_fb_dict_index][
+                                    OBSTACLES_COL
+                                ] = list_feedback_dict[OBSTACLES_COL]
+                            if PROPOSALS_COL in list_feedback_dict:
+                                entities_to_update[existing_report_fb_dict_index][
+                                    PROPOSALS_COL
+                                ] = list_feedback_dict[PROPOSALS_COL]
+                        else:
+                            # Append as a new dictionary if no report-level dict existed for this primary ID
+                            entities_to_update.append(list_feedback_dict)
+
+                elif list_feedback_exists:
                     logger.warning(
-                        f"KB Update: Report has feedback data but no primary entity ID found (Instruction: {instruction_id}). Feedback not stored."
+                        f"KB Update: Report has list-based feedback (obstacles/proposals) but no primary entity ID found (Instruction: {instruction_id}). Feedback not stored."
                     )
+                # --- End Refined Feedback Handling (v2) ---
 
                 # 3. Perform Combined Batch Update (Data + Feedback)
                 if entities_to_update:

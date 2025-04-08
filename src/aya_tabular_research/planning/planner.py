@@ -1,6 +1,6 @@
 import logging
 from collections import defaultdict  # Added for proposal boosts
-from typing import Any, Dict, List, Literal, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union  # Removed Literal
 
 import pandas as pd
 
@@ -32,8 +32,8 @@ DiscoveryDirectiveContent = Tuple[str, List[str], None]
 PlannerSignal = Union[
     Tuple[DirectiveType.ENRICHMENT, EnrichmentDirectiveContent],  # Use Enum
     Tuple[DirectiveType.DISCOVERY, DiscoveryDirectiveContent],  # Use Enum
-    Tuple[Literal["NEEDS_STRATEGIC_REVIEW"], str],  # Includes the reason
-    Literal["CLARIFICATION_NEEDED"],  # If obstacles block all paths
+    Tuple[DirectiveType.STRATEGIC_REVIEW, str],  # Use Enum, includes reason
+    DirectiveType.CLARIFICATION,  # Use Enum, if obstacles block all paths
     None,  # Indicates research completion
 ]
 
@@ -101,6 +101,8 @@ class Planner:
         self._last_incomplete_set: Optional[set[str]] = None
         # State for prioritizing retries after clarification
         self._entities_to_prioritize_retry: List[str] = []
+        # State for tracking processed base entities during enrichment cycle
+        self._processed_base_entities_enrichment: set[str] = set()
         logger.info(
             f"Planner initialized with Obstacle Threshold: {self._obstacle_threshold}, "
             f"Confidence Threshold: {self._confidence_threshold}, "
@@ -498,79 +500,57 @@ class Planner:
         # FIX: Access the first element if profile is a non-empty list
         profile_data = None
         if isinstance(profile, list) and profile:
-            profile_data = profile[0]  # Get the first dictionary from the list
-            logger.debug(f"Profile was a list, using first element: {profile_data}")
-        elif isinstance(profile, dict):  # Handle case where it might already be a dict
+            profile_data = profile[0]
+        elif isinstance(profile, dict):
             profile_data = profile
-        else:
-            logger.warning(
-                f"Profile is neither list nor dict: {type(profile)}. Cannot get proposals."
-            )
 
-        proposals = None
-        if profile_data and isinstance(profile_data, dict):
-            # Safely get proposals from the extracted dictionary
+        if profile_data:
             proposals = profile_data.get(PROPOSALS_COL)
-            logger.debug(f"Extracted proposals: {proposals}")
-        elif profile_data:
-            logger.warning(f"Profile data is not a dict: {type(profile_data)}")
-        # END FIX
-        if proposals and isinstance(proposals, list):
-            logger.debug(
-                f"Entity {candidate['id']} has proposals. Adapting focus areas."
-            )
-            try:
-                # Example: If a proposal mentions a target column, ensure it's in focus
-                for prop_item in proposals:
+            if proposals and isinstance(proposals, list):
+                # Example: If proposals suggest specific columns, add them to focus
+                for proposal_item in proposals:
                     if (
-                        isinstance(prop_item, dict)
-                        and "proposal" in prop_item
-                        and isinstance(prop_item["proposal"], str)
+                        isinstance(proposal_item, dict)
+                        and "suggested_focus" in proposal_item
+                        and isinstance(proposal_item["suggested_focus"], list)
                     ):
-                        proposal_text = prop_item["proposal"].lower()
-                        for col in target_columns:
-                            if col.lower() in proposal_text and col not in focus_areas:
-                                logger.info(
-                                    f"Adapting focus for {candidate['id']}: Adding '{col}' based on proposal mentioning it."
+                        for col in proposal_item["suggested_focus"]:
+                            if col in target_columns and col not in focus_areas:
+                                logger.debug(
+                                    f"Adding '{col}' to focus areas based on proposal for '{candidate['id']}'."
                                 )
                                 focus_areas.append(col)
-            except Exception as e:
-                logger.error(
-                    f"Error processing proposals for focus adaptation: {e}",
-                    exc_info=True,
-                )
 
-        # FUTURE: Similar logic could be added for findings
-
-        # Ensure focus_areas only contains valid columns from the task definition
-        valid_focus_areas = [
-            area for area in focus_areas if area in self._task_definition.columns
-        ]
-
-        if not valid_focus_areas:
+        # If, after considering missing attributes and proposals, focus_areas is empty,
+        # default back to all target columns to ensure progress.
+        if not focus_areas:
             logger.warning(
-                f"Focus area adaptation resulted in empty list for entity '{candidate['id']}'. Falling back to initially missing attributes or target columns."
+                f"No specific focus areas determined for '{candidate['id']}'. Defaulting to all target columns: {target_columns}"
             )
-            return missing_attributes[:] if missing_attributes else target_columns[:]
+            return target_columns[:]
 
-        return list(set(valid_focus_areas))  # Return unique list
+        return focus_areas
 
     def _plan_enrichment(
         self, priority_targets: Optional[List[str]] = None
-    ) -> Optional[Union[EnrichmentDirectiveContent, Literal["CLARIFICATION_NEEDED"]]]:
+    ) -> Union[
+        EnrichmentDirectiveContent, DirectiveType.CLARIFICATION, None
+    ]:  # Use Enum
         """
-        Plans the next enrichment step or signals completion/clarification.
+        Plans the next Enrichment directive or signals completion/clarification needed.
+
+        Prioritizes entities specified in `priority_targets` if provided.
+        Otherwise, identifies incomplete entities from the KB.
+        Evaluates candidates, selects the best one, determines focus areas,
+        and returns the directive content.
 
         Args:
-            priority_targets: Optional list of entity IDs to prioritize.
+            priority_targets: A list of entity IDs to prioritize for enrichment.
 
         Returns:
-            - EnrichmentDirectiveContent tuple if a target is found.
-            - "CLARIFICATION_NEEDED" if all incomplete entities are blocked.
-            - None if no incomplete entities are found.
-        Raises:
-            PlanningError: If TaskDefinition is not set.
-            KBInteractionError: If KB interaction fails.
+            - EnrichmentDirectiveContent tuple if a directive can be planned.
+            - "CLARIFICATION_NEEDED" if all viable candidates are blocked.
+            - None if no incomplete entities are found or no viable candidate selected.
         """
         if not self._task_definition:
             op_data = OperationalErrorData(
@@ -582,94 +562,71 @@ class Planner:
                 "Cannot plan enrichment without TaskDefinition.", operation_data=op_data
             )
 
-        logger.debug("Planner: KB not empty, proceeding with enrichment planning.")
-        target_columns = self._task_definition.target_columns
-        if not target_columns:
-            logger.warning(
-                "No target columns defined. Cannot plan enrichment. Considering research complete."
-            )
-            return None  # Signal completion
-
-        # Note: Report processing is now synchronous. KB reads reflect latest submitted data.
-        try:
-            incomplete_entities = self._kb.find_incomplete_entities(
-                target_columns
-            )  # <-- KB Read
-        except Exception as e:
-            logger.error(f"Failed to find incomplete entities: {e}", exc_info=True)
-            op_data = OperationalErrorData(
-                component="KnowledgeBase",
-                operation="find_incomplete_entities",
-                details=str(e),
-            )
-            raise KBInteractionError(
-                f"Failed to find incomplete entities: {e}", operation_data=op_data
-            ) from e
-        logger.info(
-            f"Planner: Found {len(incomplete_entities)} incomplete entities: {incomplete_entities}"
-        )
-
-        if not incomplete_entities:
+        candidate_ids: List[str] = []
+        if priority_targets:
             logger.info(
-                "Planner: All known entities appear complete based on target attributes. Research complete."
+                f"Planner: Planning enrichment with priority targets: {priority_targets}"
             )
-            logger.info("Planner: No incomplete entities found. Signaling completion.")
-            return None  # Signal completion
+            candidate_ids = priority_targets
+        else:
+            # If no priority targets, find all incomplete entities based on granularity
+            try:
+                candidate_ids = self._kb.find_incomplete_entities(
+                    self._task_definition.target_columns
+                )  # <-- KB Read
+                logger.info(
+                    f"Planner: Found {len(candidate_ids)} incomplete entities: {candidate_ids}"
+                )
+            except KBInteractionError as kbe:
+                logger.error(
+                    f"Failed to find incomplete entities: {kbe}", exc_info=True
+                )
+                # Treat as no candidates found if KB fails
+                candidate_ids = []
+            except Exception as e:
+                logger.error(
+                    f"Unexpected error finding incomplete entities: {e}", exc_info=True
+                )
+                candidate_ids = []
+
+        if not candidate_ids:
+            logger.info("Planner: No incomplete entities found for enrichment.")
+            return None  # Signal completion for this phase
 
         # --- Evaluate Candidates ---
-        candidate_evaluations, blocked_candidates = self._evaluate_candidates(
-            incomplete_entities
-        )
-        logger.info(
-            f"Planner: Evaluated candidates. Viable: {len(candidate_evaluations)}, Blocked: {len(blocked_candidates)} ({blocked_candidates})"
-        )
-
-        # --- Handle Blockers / Select Candidate (with Priority Targets) ---
-        viable_candidates = candidate_evaluations  # Start with all unblocked
-
-        # If priority targets are given, try to select from them first
-        if priority_targets:
-            priority_evals = [
-                cand for cand in viable_candidates if cand["id"] in priority_targets
-            ]
-            if priority_evals:
-                logger.debug(
-                    f"Prioritizing selection from {len(priority_evals)} client-specified targets."
-                )
-                selected_candidate = self._select_best_candidate(priority_evals)
-                if selected_candidate:
-                    logger.info(f"Selected priority target: {selected_candidate['id']}")
-                else:  # Should not happen if priority_evals is not empty, but safety check
-                    logger.warning(
-                        "Priority target selection failed unexpectedly, falling back."
-                    )
-                    selected_candidate = self._select_best_candidate(
-                        viable_candidates
-                    )  # Fallback
-            else:
-                logger.debug(
-                    "No valid/unblocked priority targets found, selecting from all viable candidates."
-                )
-                selected_candidate = self._select_best_candidate(viable_candidates)
-        else:
-            # No priority targets, select from all viable candidates
-            selected_candidate = self._select_best_candidate(viable_candidates)
-            logger.info(
-                f"Planner: Selected candidate: {selected_candidate['id'] if selected_candidate else 'None'}"
+        try:
+            viable_candidates, blocked_candidates = self._evaluate_candidates(
+                candidate_ids
             )
+        except PlanningError:
+            raise  # Propagate planning errors during evaluation
+        except Exception as e:
+            logger.error(
+                f"Unexpected error during candidate evaluation: {e}", exc_info=True
+            )
+            # Treat as no viable candidates if evaluation fails unexpectedly
+            viable_candidates = []
+            blocked_candidates = candidate_ids  # Assume all are potentially blocked
 
-        # Handle cases where no candidate could be selected or all are blocked
+        logger.info(
+            f"Planner: Evaluated candidates. Viable: {len(viable_candidates)}, Blocked: {len(blocked_candidates)} ({blocked_candidates})"
+        )
+
+        # --- Select Best Candidate ---
+        selected_candidate = self._select_best_candidate(viable_candidates)
+
         if not selected_candidate:
             if not viable_candidates and blocked_candidates:
                 logger.warning(
                     "Planner: All remaining incomplete entities have known obstacles. Signaling for user clarification."
                 )
-                return "CLARIFICATION_NEEDED"
+                return DirectiveType.CLARIFICATION  # Use Enum
             elif not viable_candidates and not blocked_candidates:
+                # This case might happen if profile loading failed for all candidates
                 logger.error(
-                    "Planner: No viable candidates found (all failed profile load?). Signaling completion."
+                    "Planner: No viable candidates found (all failed profile load or other eval error?). Signaling completion to avoid loop."
                 )
-                return None  # Avoid potential loops
+                return None
             else:  # Should not happen if _select_best_candidate works correctly
                 logger.error(
                     "Planner: Candidate selection failed unexpectedly after filtering. Signaling completion."
@@ -680,8 +637,9 @@ class Planner:
         focus_areas = self._determine_focus_areas(selected_candidate)
         if not focus_areas:
             logger.warning(
-                f"Entity '{selected_candidate['id']}' was selected, but no focus areas determined. Signaling completion to avoid loop."
+                f"Entity '{selected_candidate['id']}' was selected, but no focus areas determined (might be complete?). Signaling completion to avoid loop."
             )
+            # If an entity is selected but has no missing target columns, treat as complete for now.
             return None
 
         target_entity_id = selected_candidate["id"]
@@ -742,120 +700,239 @@ class Planner:
 
         logger.debug(f"Planner: KB Summary: {kb_summary}")
 
-        # --- Priority 0: Check for Strategic Review Triggers ---
-        entity_count = kb_summary.get("entity_count", 0)
-        if entity_count > 0:  # Only check triggers if there are entities
+        # --- Initial Discovery ---
+        if kb_summary.get("entity_count", 0) == 0:
+            # If KB is empty, always start with discovery
+            logger.info("Planner: KB empty. Planning discovery.")
+            # Reset processed base entities when starting discovery
+            self._processed_base_entities_enrichment = set()
+            discovery_content = self._plan_discovery()
+            return (DirectiveType.DISCOVERY, discovery_content)
+
+        # --- Check for Obstacles Blocking ALL Paths ---
+        # TODO: Implement a more robust check if needed
+
+        # --- Enrichment / Review / Completion Logic ---
+        # Reset processed base entities set if it's empty (start of a new cycle after discovery/review)
+        if not self._processed_base_entities_enrichment:
+            logger.info(
+                "Planner: Resetting processed base entities set for new enrichment cycle."
+            )
+            self._processed_base_entities_enrichment = set()
+
+        # 1. Prioritize Granular Incomplete Entities
+        try:
+            granular_incomplete_entities = self._kb.find_incomplete_entities(
+                self._task_definition.target_columns
+            )  # <-- KB Read
+        except Exception as e:
+            logger.error(f"Failed to get incomplete entities: {e}", exc_info=True)
+            return ("NEEDS_STRATEGIC_REVIEW", f"Failed to get incomplete entities: {e}")
+
+        if granular_incomplete_entities:
+            logger.info(
+                f"Planner: Found {len(granular_incomplete_entities)} granular incomplete entities. Planning enrichment."
+            )
+            enrichment_signal = self._plan_enrichment(
+                priority_targets=granular_incomplete_entities
+            )
+            if enrichment_signal:
+                # If enrichment is planned for a granular entity, return it
+                if (
+                    isinstance(enrichment_signal, tuple)
+                    and enrichment_signal[0] == DirectiveType.ENRICHMENT
+                ):
+                    return (DirectiveType.ENRICHMENT, enrichment_signal[1])
+                elif enrichment_signal == "CLARIFICATION_NEEDED":
+                    return "CLARIFICATION_NEEDED"
+                else:  # Should not happen
+                    logger.error(
+                        f"Planner: _plan_enrichment returned unexpected signal for granular: {enrichment_signal}"
+                    )
+                    return (
+                        "NEEDS_STRATEGIC_REVIEW",
+                        "Internal planner error: Unexpected granular enrichment signal.",
+                    )
+            else:
+                logger.warning(
+                    "Planner: Found granular incomplete entities, but _plan_enrichment returned no directive. Might be blocked or error."
+                )
+                # Fall through to check base entities / stagnation etc.
+
+        # 2. If No Granular Incomplete, Process Next Unprocessed Base Entity
+        if not granular_incomplete_entities:
+            logger.info(
+                "Planner: No granular incomplete entities found. Checking for next unprocessed base entity."
+            )
             try:
-                # Check Obstacle Threshold
-                entities_with_obstacles = (
-                    self._kb.get_entities_with_active_obstacles()
-                )  # <-- KB Read
-                obstacle_ratio = len(entities_with_obstacles) / entity_count
-                if obstacle_ratio >= self._obstacle_threshold:
-                    logger.warning(
-                        f"Planner: Obstacle threshold met ({obstacle_ratio:.2f} >= {self._obstacle_threshold}). Triggering Strategic Review."
-                    )
-                    return ("NEEDS_STRATEGIC_REVIEW", "critical_obstacles")
+                all_base_entity_ids = set(self._kb.get_all_entity_ids())  # <-- KB Read
+                # Sort for deterministic processing order
+                sorted_base_ids = sorted(list(all_base_entity_ids))
 
-                # Check Confidence Threshold
-                avg_confidence = self._kb.get_average_confidence()  # <-- KB Read
-                if (
-                    avg_confidence is not None
-                    and avg_confidence < self._confidence_threshold
-                ):
-                    logger.warning(
-                        f"Planner: Average confidence threshold met ({avg_confidence:.2f} < {self._confidence_threshold}). Triggering Strategic Review."
-                    )
-                    return ("NEEDS_STRATEGIC_REVIEW", "low_confidence")
+                next_unprocessed_base_entity = next(
+                    (
+                        eid
+                        for eid in sorted_base_ids
+                        if eid not in self._processed_base_entities_enrichment
+                    ),
+                    None,
+                )
 
-                # Check Stagnation
-                current_incomplete_set = set(
-                    self._kb.find_incomplete_entities(
-                        self._task_definition.target_columns
+                if next_unprocessed_base_entity:
+                    logger.info(
+                        f"Planner: Planning enrichment for next base entity: '{next_unprocessed_base_entity}'"
                     )
-                )  # <-- KB Read
-                if (
-                    self._last_incomplete_set is not None
-                    and current_incomplete_set == self._last_incomplete_set
-                ):
-                    self._stagnation_counter += 1
-                    logger.debug(
-                        f"Planner: Incomplete set unchanged. Stagnation counter: {self._stagnation_counter}"
+                    self._processed_base_entities_enrichment.add(
+                        next_unprocessed_base_entity
                     )
+                    enrichment_signal = self._plan_enrichment(
+                        priority_targets=[next_unprocessed_base_entity]
+                    )
+                    if enrichment_signal:
+                        if (
+                            isinstance(enrichment_signal, tuple)
+                            and enrichment_signal[0] == DirectiveType.ENRICHMENT
+                        ):
+                            return (DirectiveType.ENRICHMENT, enrichment_signal[1])
+                        elif enrichment_signal == "CLARIFICATION_NEEDED":
+                            # If the chosen base entity needs clarification, signal it
+                            return "CLARIFICATION_NEEDED"
+                        else:  # Should not happen
+                            logger.error(
+                                f"Planner: _plan_enrichment returned unexpected signal for base: {enrichment_signal}"
+                            )
+                            return (
+                                "NEEDS_STRATEGIC_REVIEW",
+                                "Internal planner error: Unexpected base enrichment signal.",
+                            )
+                    else:
+                        logger.warning(
+                            f"Planner: Tried to plan enrichment for base entity '{next_unprocessed_base_entity}', but received no directive. Might be blocked or error."
+                        )
+                        # Fall through to stagnation checks etc.
                 else:
-                    logger.debug(
-                        "Planner: Incomplete set changed or first check. Resetting stagnation counter."
+                    # --- All Base Entities Processed ---
+                    logger.info(
+                        "Planner: All known base entities have been processed in this enrichment cycle."
                     )
-                    self._stagnation_counter = 0
-                    self._last_incomplete_set = current_incomplete_set
 
-                if self._stagnation_counter >= self._stagnation_cycles_threshold:
-                    logger.warning(
-                        f"Planner: Stagnation threshold met ({self._stagnation_counter} >= {self._stagnation_cycles_threshold}). Triggering Strategic Review."
+                    # 3. Stagnation & Confidence Checks (Only if all base entities processed)
+                    logger.debug(
+                        "Planner: Checking stagnation and confidence before strategic review."
                     )
-                    # Reset counter after triggering review to avoid immediate re-trigger
-                    self._stagnation_counter = 0
-                    self._last_incomplete_set = None  # Reset last set as well
-                    return ("NEEDS_STRATEGIC_REVIEW", "stagnation")
+                    try:
+                        # Check for stagnation using granular incomplete set
+                        # Re-fetch granular incomplete set for the check
+                        current_incomplete_set = set(
+                            self._kb.find_incomplete_entities(
+                                self._task_definition.target_columns
+                            )
+                        )
+                        if (
+                            self._last_incomplete_set is not None
+                            and current_incomplete_set == self._last_incomplete_set
+                        ):
+                            self._stagnation_counter += 1
+                            logger.warning(
+                                f"Planner: Incomplete set unchanged. Stagnation counter: {self._stagnation_counter}"
+                            )
+                        else:
+                            logger.debug(
+                                "Planner: Incomplete set changed or first check. Resetting stagnation counter."
+                            )
+                            self._stagnation_counter = 0
+                            self._last_incomplete_set = current_incomplete_set
+
+                        if (
+                            self._stagnation_counter
+                            >= self._stagnation_cycles_threshold
+                        ):
+                            logger.error(
+                                f"Planner: Stagnation detected ({self._stagnation_counter} cycles). Signaling strategic review."
+                            )
+                            # Reset state for next cycle after review
+                            self._processed_base_entities_enrichment = set()
+                            self._stagnation_counter = 0
+                            self._last_incomplete_set = None
+                            return (
+                                "NEEDS_STRATEGIC_REVIEW",
+                                f"Stagnation detected after {self._stagnation_counter} cycles with no progress on incomplete entities.",
+                            )
+
+                        # Check overall confidence
+                        avg_confidence = (
+                            self._kb.get_average_confidence()
+                        )  # <-- KB Read
+                        if (
+                            avg_confidence is not None
+                            and avg_confidence < self._confidence_threshold
+                        ):
+                            logger.warning(
+                                f"Planner: Average KB confidence ({avg_confidence:.2f}) is below threshold ({self._confidence_threshold}). Signaling strategic review."
+                            )
+                            # Reset state for next cycle after review
+                            self._processed_base_entities_enrichment = set()
+                            return (
+                                "NEEDS_STRATEGIC_REVIEW",
+                                f"Average KB confidence ({avg_confidence:.2f}) is below threshold ({self._confidence_threshold}).",
+                            )
+
+                    except KBInteractionError as kbe:
+                        logger.error(
+                            f"Planner: KB error during stagnation/confidence check: {kbe}",
+                            exc_info=True,
+                        )
+                        return (
+                            "NEEDS_STRATEGIC_REVIEW",
+                            f"KB error during planner checks: {kbe.message}",
+                        )
+                    except Exception as e:
+                        logger.error(
+                            f"Planner: Unexpected error during stagnation/confidence check: {e}",
+                            exc_info=True,
+                        )
+                        return (
+                            "NEEDS_STRATEGIC_REVIEW",
+                            f"Unexpected error during planner checks: {e}",
+                        )
+
+                    # 4. Trigger Strategic Review (If all base entities processed & no other issues)
+                    logger.info(
+                        "Planner: Initial enrichment cycle complete for all known entities. No stagnation or low confidence detected. Signaling strategic review."
+                    )
+                    # Reset processed set before signaling review, so next cycle starts fresh
+                    self._processed_base_entities_enrichment = set()
+                    return (
+                        "NEEDS_STRATEGIC_REVIEW",
+                        "Initial enrichment phase complete. Review results and provide guidance for the next phase (e.g., 'continue discovery', 'refine targets', 'complete research').",
+                    )
 
             except KBInteractionError as kbe:
                 logger.error(
-                    f"KB interaction failed during strategic review checks: {kbe}",
+                    f"Planner: KB error while getting base entity IDs: {kbe}",
                     exc_info=True,
                 )
-                # Decide how to handle - proceed with standard planning or raise?
-                # Proceeding might be safer to avoid getting stuck.
+                return (
+                    "NEEDS_STRATEGIC_REVIEW",
+                    f"KB error during planner checks: {kbe.message}",
+                )
             except Exception as e:
                 logger.error(
-                    f"Unexpected error during strategic review checks: {e}",
+                    f"Planner: Unexpected error while getting base entity IDs: {e}",
                     exc_info=True,
                 )
-                # Proceed with standard planning
-
-        # --- Priority 1: Server Sanity Checks (Example: Critical Obstacles) ---
-        # TODO: Implement more robust obstacle checking if needed, e.g., checking specific critical entities.
-        # For now, rely on _plan_enrichment returning "CLARIFICATION_NEEDED" if all incomplete are blocked.
-
-        # --- Priority 2: Default Algorithmic Action ---
-        # (Client assessment logic removed as per architectural plan)
-
-        # --- Priority 4: Default Algorithmic Action (No specific client guidance for phase) ---
-        logger.debug(
-            "Planner: No specific client phase guidance, proceeding with default logic."
-        )
-        if kb_summary.get("entity_count", 0) == 0:
-            logger.debug("Planner: Defaulting to discovery (KB empty).")
-            discovery_params = self._plan_discovery()
-            return (DirectiveType.DISCOVERY, discovery_params)  # Use Enum
-        else:
-            logger.debug("Planner: Defaulting to enrichment planning.")
-            enrichment_outcome = self._plan_enrichment()  # No priority targets here
-
-            if isinstance(enrichment_outcome, tuple):  # Enrichment directive content
-                return ("ENRICH", enrichment_outcome)
-            elif enrichment_outcome == "CLARIFICATION_NEEDED":
-                logger.warning(
-                    "Planner: Default enrichment found only blocked targets. Requesting strategic review."
+                return (
+                    "NEEDS_STRATEGIC_REVIEW",
+                    f"Unexpected error during planner checks: {e}",
                 )
-                # Instead of direct clarification, let client review the blocked state
-                return ("NEEDS_STRATEGIC_REVIEW", "critical_obstacles")
-            else:  # enrichment_outcome is None (no incomplete targets found)
-                logger.info(
-                    "Planner: Default enrichment found no targets. Requesting strategic review."
-                )
-                return ("NEEDS_STRATEGIC_REVIEW", "enrichment_complete")
 
-        # --- Safety Net ---
+        # Fallback if somehow no directive was issued (should ideally not be reached with new logic)
         logger.error(
-            "Planner: determine_next_directive reached end without returning a signal. Raising PlanningError."
+            "Planner: Reached end of planning logic without issuing a directive or review signal. This indicates a potential logic error."
         )
-        op_data = OperationalErrorData(
-            component="Planner",
-            operation="determine_next_directive",
-            details="Logical flow error: No planning signal determined.",
-        )
-        raise PlanningError(
-            "Planner failed to determine the next directive.", operation_data=op_data
+        return (
+            "NEEDS_STRATEGIC_REVIEW",
+            "Planner reached unexpected state. Needs review.",
         )
 
     # Removed check_completion method as completion is now determined within determine_next_directive

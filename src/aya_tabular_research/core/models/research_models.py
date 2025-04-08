@@ -1,11 +1,11 @@
 import uuid
 from enum import Enum
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 from pydantic import BaseModel, Field, field_validator
 
 # Import necessary enums
-from .enums import DirectiveType, InquiryStatus
+from .enums import DirectiveType, InquiryStatus, StrategicDecisionOption
 
 # --- Task Definition ---
 
@@ -332,11 +332,9 @@ class InquiryReport(BaseModel):
     # --- End Phase 3+ Fields ---
 
     # --- Fields for Proposal 6.3 ---
-    strategic_decision: Optional[
-        Literal["FINALIZE", "DISCOVER", "ENRICH", "ENRICH_SPECIFIC", "CLARIFY_USER"]
-    ] = Field(
+    strategic_decision: Optional[StrategicDecisionOption] = Field(
         None,
-        description="Required when responding to a STRATEGIC_REVIEW directive. The client's chosen strategic direction.",
+        description="Required when responding to a STRATEGIC_REVIEW directive. The client's chosen strategic direction, must be one of the StrategicDecisionOption enum values.",
     )
     strategic_targets: Optional[List[str]] = Field(
         None,

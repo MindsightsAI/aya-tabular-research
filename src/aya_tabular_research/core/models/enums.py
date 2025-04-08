@@ -5,19 +5,14 @@ class OverallStatus(str, Enum):
     """Represents the overall status of the research task (Phase 2+)."""
 
     # --- Phase 1 States ---
-    AWAITING_TASK_DEFINITION = "AWAITING_TASK_DEFINITION"  # Initial state
-    # DEFINING_TASK = "DEFINING_TASK"                 # Internal processing, not a stable state
-    # PLANNING_INITIAL = "PLANNING_INITIAL"             # Internal processing, not a stable state
-    AWAITING_DIRECTIVE = (
-        "AWAITING_DIRECTIVE"  # Ready to provide next directive (or first)
-    )
+    AWAITING_TASK_DEFINITION = "AWAITING_TASK_DEFINITION"
+    AWAITING_DIRECTIVE = "AWAITING_DIRECTIVE"  # Ready to provide next directive
 
     # --- Phase 2+ States ---
     CONDUCTING_INQUIRY = "CONDUCTING_INQUIRY"  # Directive issued, awaiting report
     AWAITING_USER_CLARIFICATION = (
         "AWAITING_USER_CLARIFICATION"  # Blocked, needs user input (Phase 3)
     )
-    # PLANNING_NEXT = "PLANNING_NEXT"                 # Internal processing after report, before AWAITING_DIRECTIVE
 
     # --- Terminal States ---
     RESEARCH_COMPLETE = "RESEARCH_COMPLETE"  # Task considered finished
@@ -44,3 +39,13 @@ class DirectiveType(str, Enum):
     CLARIFICATION = "CLARIFICATION"
     STRATEGIC_REVIEW = "STRATEGIC_REVIEW"
     COMPLETION = "COMPLETION"
+
+
+class StrategicDecisionOption(str, Enum):
+    """Valid strategic decisions the client can make during a review."""
+
+    FINALIZE = "FINALIZE"
+    DISCOVER = "DISCOVER"
+    ENRICH = "ENRICH"
+    ENRICH_SPECIFIC = "ENRICH_SPECIFIC"
+    CLARIFY_USER = "CLARIFY_USER"
