@@ -182,6 +182,41 @@ async def list_server_tools() -> list[types.Tool]:
     return tool_list
 
 
+@server.list_resources()
+async def list_server_resources() -> list[types.Resource]:
+    """Lists all resources provided by the server."""
+    # Define resources based on the URIs handled in handle_read_resource
+    resource_list = [
+        types.Resource(
+            uri="research://research/status",
+            description="Provides the current status of the research task and available tools.",
+            # Add other metadata if needed, e.g., mime_type="application/json"
+        ),
+        types.Resource(
+            uri="debug://research/debug_state",
+            description="FOR DEBUGGING ONLY: Returns a JSON string representation of the current state.",
+            # Add other metadata if needed
+        ),
+    ]
+    logger.info(f"Listing {len(resource_list)} resources.")
+    return resource_list
+
+
+@server.list_prompts()
+async def list_server_prompts() -> list[types.Prompt]:
+    """Lists all prompts provided by the server."""
+    # Define prompts based on the names handled in handle_get_prompt
+    prompt_list = [
+        types.Prompt(
+            name="research/overview",
+            description="Provides an overview or summary related to the research.",
+            # Add inputSchema if the prompt takes arguments
+        ),
+    ]
+    logger.info(f"Listing {len(prompt_list)} prompts.")
+    return prompt_list
+
+
 @server.call_tool()
 async def handle_tool_call(
     name: str, arguments: dict  # Removed ctx: RequestContext
