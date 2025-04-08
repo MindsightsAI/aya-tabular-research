@@ -6,6 +6,8 @@ docs/
 .roo/
 build_llm_context_clip.py
 run-firecrawl.sh
+run-cognee.sh
+artifacts/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -28,9 +28,7 @@ def setup_logging(level=logging.DEBUG):  # Changed default level to DEBUG
 
     # Add our handler (logging to a file instead of stdout)
     log_file_path = get_artifact_path(filename="mcp_server.log")  # Use artifact manager
-    print(
-        f"DEBUG [logging_config]: Attempting to log to = {log_file_path}"
-    )  # Add this line
+    
     file_handler = logging.FileHandler(log_file_path, mode="w")  # Create FileHandler
     file_handler.setFormatter(log_formatter)  # Apply formatter to file_handler
     app_logger.addHandler(file_handler)  # Add file_handler to logger

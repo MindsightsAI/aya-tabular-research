@@ -42,12 +42,12 @@ AYA employs a collaborative "Guided Inquiry" model with clear roles:
 ```mermaid
 graph TD
     A[Start: User Goal] --> B(Client: Define Task);
-    B -- research/define_task --> C{Aya Server: Validate & Plan First Step};
+    B -- research_define_task --> C{Aya Server: Validate & Plan First Step};
 
     subgraph "Main Inquiry Loop"
         direction TB
         C -- Directive --> D(Client: Execute/Research);
-        D -- research/submit_inquiry_report --> E{Aya Server: Process Report & Plan Next};
+        D -- research_submit_inquiry_report --> E{Aya Server: Process Report & Plan Next};
         E -- Next Standard Directive --> D;
     end
 
@@ -62,14 +62,14 @@ graph TD
         direction TB
         F --> SR1(Client: Analyze Context & Ask User);
         SR1 -- User Decision --> SR2(Client: Submit Decision Report);
-        SR2 -- research/submit_inquiry_report --> E;
+        SR2 -- research_submit_inquiry_report --> E;
     end
 
     subgraph "Clarification Handling"
         direction TB
         G --> CL1(Client: Ask User);
         CL1 -- User Input --> CL2(Client: Submit Clarification);
-        CL2 -- research/submit_user_clarification --> E;
+        CL2 -- research_submit_user_clarification --> E;
     end
 
     H --> I(Client: Export Results);
@@ -78,14 +78,14 @@ graph TD
 
 **Simplified Steps:**
 
-1.  **Define:** User provides goal -> Client calls `research/define_task` with task parameters.
+1.  **Define:** User provides goal -> Client calls `research_define_task` with task parameters.
 2.  **Direct:** Aya validates, initializes, plans, and returns the first directive (e.g., `DISCOVERY` or `ENRICHMENT`) with embedded context in the `DefineTaskResult`.
 3.  **Execute:** Client receives the directive object, accesses embedded context, and performs research using its capabilities.
-4.  **Report:** Client submits findings, status, obstacles, etc., in an `InquiryReport` via `research/submit_inquiry_report`.
+4.  **Report:** Client submits findings, status, obstacles, etc., in an `InquiryReport` via `research_submit_inquiry_report`.
 5.  **Plan & Iterate:** Aya processes the report (validates, updates in-memory KB), plans the next step, and returns the next directive OR triggers Strategic Review OR requests Clarification OR signals Completion in the `SubmitReportAndGetDirectiveResult`.
 6.  **Strategize (if triggered):** Aya sends `StrategicReviewDirective` -> Client analyzes context (may involve User) -> Client submits strategic decision in `InquiryReport` -> Aya plans accordingly.
-7.  **Clarify (if needed):** Aya requests clarification -> Client involves User -> Client submits clarification via `research/submit_user_clarification` -> Aya plans accordingly.
-8.  **Complete:** Aya signals completion (`status: "research_complete"`) -> Client can use `research/export_results` to retrieve the final data.
+7.  **Clarify (if needed):** Aya requests clarification -> Client involves User -> Client submits clarification via `research_submit_user_clarification` -> Aya plans accordingly.
+8.  **Complete:** Aya signals completion (`status: "research_complete"`) -> Client can use `research_export_results` to retrieve the final data.
 
 ## Key Features & Benefits
 

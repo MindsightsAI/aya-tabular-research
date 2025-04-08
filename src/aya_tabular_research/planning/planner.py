@@ -32,7 +32,9 @@ DiscoveryDirectiveContent = Tuple[str, List[str], None]
 PlannerSignal = Union[
     Tuple[DirectiveType.ENRICHMENT, EnrichmentDirectiveContent],  # Use Enum
     Tuple[DirectiveType.DISCOVERY, DiscoveryDirectiveContent],  # Use Enum
-    Tuple[DirectiveType.STRATEGIC_REVIEW, str],  # Use Enum, includes reason
+    Tuple[
+        DirectiveType.STRATEGIC_REVIEW, Dict[str, Any]
+    ],  # Use Enum, payload includes reason and context
     DirectiveType.CLARIFICATION,  # Use Enum, if obstacles block all paths
     None,  # Indicates research completion
 ]
@@ -103,6 +105,8 @@ class Planner:
         self._entities_to_prioritize_retry: List[str] = []
         # State for tracking processed base entities during enrichment cycle
         self._processed_base_entities_enrichment: set[str] = set()
+        # State for tracking enrichment cycles
+        self._enrichment_cycle_count: int = 0
         logger.info(
             f"Planner initialized with Obstacle Threshold: {self._obstacle_threshold}, "
             f"Confidence Threshold: {self._confidence_threshold}, "
@@ -208,6 +212,9 @@ class Planner:
         else:
             logger.debug("Clarification did not contain retry keywords.")
 
+        logger.debug(
+            f"Planner: Final entities prioritized for retry after clarification: {self._entities_to_prioritize_retry}"
+        )
         # TODO: Implement more sophisticated parsing or state updates based on clarification if needed.
 
     def _plan_discovery(self) -> DiscoveryDirectiveContent:
@@ -305,6 +312,10 @@ class Planner:
                 # profile remains None
 
             # Check if ANY profile row for this entity has obstacles
+            is_prioritized_retry = entity_id in self._entities_to_prioritize_retry
+            logger.debug(
+                f"Planner: Evaluating '{entity_id}'. Prioritized for retry: {is_prioritized_retry}"
+            )
             has_obstacles = False
             if isinstance(profile, list):  # Handle list case (MultiIndex)
                 for row_profile in profile:
@@ -323,9 +334,16 @@ class Planner:
 
             if has_obstacles:
                 blocked_candidates.append(entity_id)
+                logger.warning(
+                    f"Planner: Entity '{entity_id}' evaluation result: BLOCKED due to obstacles."
+                )  # Corrected indentation
                 continue  # Skip further evaluation for blocked candidates
+            else:  # Moved else block here
+                logger.debug(
+                    f"Planner: Entity '{entity_id}' evaluation result: NOT BLOCKED by obstacles."
+                )  # Corrected indentation
 
-            # --- Calculate Priority Score ---
+            # --- Calculate Priority Score --- (This section now follows the if/else)
             priority_score = 0.0  # Use float for potentially finer scoring
 
             # Extract confidence and proposals, handling list or dict profile
@@ -549,7 +567,7 @@ class Planner:
 
         Returns:
             - EnrichmentDirectiveContent tuple if a directive can be planned.
-            - "CLARIFICATION_NEEDED" if all viable candidates are blocked.
+            - DirectiveType.CLARIFICATION if all viable candidates are blocked.
             - None if no incomplete entities are found or no viable candidate selected.
         """
         if not self._task_definition:
@@ -608,30 +626,46 @@ class Planner:
             viable_candidates = []
             blocked_candidates = candidate_ids  # Assume all are potentially blocked
 
+        # Log evaluation results
+        logger.debug(
+            f"Planner: Evaluation results - Viable: {[c['id'] for c in viable_candidates]}, Blocked: {blocked_candidates}"
+        )
         logger.info(
             f"Planner: Evaluated candidates. Viable: {len(viable_candidates)}, Blocked: {len(blocked_candidates)} ({blocked_candidates})"
+        )  # Combined logger.info onto one line
+        logger.debug(
+            f"_plan_enrichment: Viable candidates: {[c['id'] for c in viable_candidates]}"
         )
+        logger.debug(f"_plan_enrichment: Blocked candidates: {blocked_candidates}")
 
         # --- Select Best Candidate ---
         selected_candidate = self._select_best_candidate(viable_candidates)
+        # Log selected candidate
+        selected_id = selected_candidate["id"] if selected_candidate else "None"
+        logger.debug(f"Planner: Selected candidate after evaluation: {selected_id}")
 
         if not selected_candidate:
             if not viable_candidates and blocked_candidates:
+                # Log clarification reason (Removed duplicate warning)
                 logger.warning(
-                    "Planner: All remaining incomplete entities have known obstacles. Signaling for user clarification."
+                    "Planner: No viable candidates found, but blocked candidates exist. Signaling for user clarification."
                 )
+                # Original warning message (commented out as the inserted one above serves the purpose)
+                # logger.warning(
+                #     "Planner: All remaining incomplete entities have known obstacles. Signaling for user clarification."
+                # )
                 return DirectiveType.CLARIFICATION  # Use Enum
             elif not viable_candidates and not blocked_candidates:
                 # This case might happen if profile loading failed for all candidates
                 logger.error(
                     "Planner: No viable candidates found (all failed profile load or other eval error?). Signaling completion to avoid loop."
                 )
-                return None
-            else:  # Should not happen if _select_best_candidate works correctly
+                return None  # Corrected indentation
+            else:  # Should not happen if _select_best_candidate works correctly (Corrected indentation)
                 logger.error(
                     "Planner: Candidate selection failed unexpectedly after filtering. Signaling completion."
                 )
-                return None
+                return None  # Corrected indentation
 
         # --- Determine Focus & Formulate Directive ---
         focus_areas = self._determine_focus_areas(selected_candidate)
@@ -655,6 +689,9 @@ class Planner:
         )
         # Clear the retry list now that a selection has been made based on it
         self._entities_to_prioritize_retry = []
+        logger.debug(
+            f"_plan_enrichment: Returning enrichment content: {directive_content}"
+        )
         return directive_content  # Return the tuple directly
 
     def determine_next_directive(self) -> PlannerSignal:
@@ -670,6 +707,7 @@ class Planner:
             PlanningError: If prerequisites are missing or logic fails.
             KBInteractionError: If KB interaction fails.
         """
+        blocked_candidates: List[str] = []  # Initialize early
         if not self._kb.is_ready or not self._task_definition:
             logger.error(
                 "Precondition failed for planning: KnowledgeBase not ready or TaskDefinition not set."
@@ -720,14 +758,46 @@ class Planner:
             )
             self._processed_base_entities_enrichment = set()
 
-        # 1. Prioritize Granular Incomplete Entities
+        # --- Check for Priority Targets (User Decision / Retry) ---
+        # If specific targets were requested for retry via clarification, handle them first.
+        priority_targets_from_clarification = self._entities_to_prioritize_retry[
+            :
+        ]  # Use copy
+        if priority_targets_from_clarification:
+            logger.info(
+                f"Planner: Prioritizing entities from clarification/retry: {priority_targets_from_clarification}"
+            )
+            enrichment_signal = self._plan_enrichment(
+                priority_targets=priority_targets_from_clarification
+            )
+            if isinstance(enrichment_signal, tuple):  # Enrichment planned
+                # Clear retry list as we are proceeding with enrichment
+                self._entities_to_prioritize_retry = []
+                return (DirectiveType.ENRICHMENT, enrichment_signal)
+            elif (
+                enrichment_signal == DirectiveType.CLARIFICATION
+            ):  # Clarification needed for priority target
+                # Do not clear retry list, clarification needed first
+                return DirectiveType.CLARIFICATION
+            else:  # None (priority target might be complete or blocked without clarification option)
+                logger.warning(
+                    f"Planner: Priority target enrichment for {priority_targets_from_clarification} resulted in no directive. Proceeding with normal flow."
+                )
+                # Clear the retry list as the attempt was made, even if no directive resulted
+                self._entities_to_prioritize_retry = []
+        # --- END Priority Target Check ---
+
+        # 1. Prioritize Granular Incomplete Entities (if no priority targets handled above)
         try:
             granular_incomplete_entities = self._kb.find_incomplete_entities(
                 self._task_definition.target_columns
             )  # <-- KB Read
         except Exception as e:
             logger.error(f"Failed to get incomplete entities: {e}", exc_info=True)
-            return ("NEEDS_STRATEGIC_REVIEW", f"Failed to get incomplete entities: {e}")
+            return (
+                DirectiveType.STRATEGIC_REVIEW,
+                f"Failed to get incomplete entities: {e}",
+            )
 
         if granular_incomplete_entities:
             logger.info(
@@ -738,22 +808,20 @@ class Planner:
             )
             if enrichment_signal:
                 # If enrichment is planned for a granular entity, return it
-                if (
-                    isinstance(enrichment_signal, tuple)
-                    and enrichment_signal[0] == DirectiveType.ENRICHMENT
-                ):
-                    return (DirectiveType.ENRICHMENT, enrichment_signal[1])
-                elif enrichment_signal == "CLARIFICATION_NEEDED":
-                    return "CLARIFICATION_NEEDED"
-                else:  # Should not happen
-                    logger.error(
-                        f"Planner: _plan_enrichment returned unexpected signal for granular: {enrichment_signal}"
+                # FIX: _plan_enrichment returns the content tuple directly or CLARIFICATION/None
+                if isinstance(enrichment_signal, tuple):  # Enrichment planned
+                    # The signal *is* the EnrichmentDirectiveContent tuple
+                    logger.debug(
+                        f"determine_next_directive: Wrapping granular enrichment content: {enrichment_signal}"
                     )
-                    return (
-                        "NEEDS_STRATEGIC_REVIEW",
-                        "Internal planner error: Unexpected granular enrichment signal.",
-                    )
-            else:
+                    return (DirectiveType.ENRICHMENT, enrichment_signal)
+                elif (
+                    enrichment_signal == DirectiveType.CLARIFICATION
+                ):  # Clarification needed
+                    return DirectiveType.CLARIFICATION
+                # else: None means no viable candidate or completion for this granular set
+                # Fall through to check base entities if signal is None
+                # else: (enrichment_signal is None)
                 logger.warning(
                     "Planner: Found granular incomplete entities, but _plan_enrichment returned no directive. Might be blocked or error."
                 )
@@ -788,21 +856,28 @@ class Planner:
                     enrichment_signal = self._plan_enrichment(
                         priority_targets=[next_unprocessed_base_entity]
                     )
+                    # Log and process the enrichment signal (All indented one level)
+                    logger.debug(
+                        f"Planner: Received signal from _plan_enrichment: {enrichment_signal}"
+                    )
+                    # Corrected indentation for the following block
                     if enrichment_signal:
-                        if (
-                            isinstance(enrichment_signal, tuple)
-                            and enrichment_signal[0] == DirectiveType.ENRICHMENT
-                        ):
-                            return (DirectiveType.ENRICHMENT, enrichment_signal[1])
-                        elif enrichment_signal == "CLARIFICATION_NEEDED":
+                        # Check if _plan_enrichment returned the EnrichmentDirectiveContent tuple
+                        if isinstance(enrichment_signal, tuple):
+                            # Correctly wrap the content into the PlannerSignal format
+                            logger.debug(
+                                f"determine_next_directive: Wrapping enrichment content: {enrichment_signal}"
+                            )
+                            return (DirectiveType.ENRICHMENT, enrichment_signal)
+                        elif enrichment_signal == DirectiveType.CLARIFICATION:
                             # If the chosen base entity needs clarification, signal it
-                            return "CLARIFICATION_NEEDED"
+                            return DirectiveType.CLARIFICATION
                         else:  # Should not happen
                             logger.error(
                                 f"Planner: _plan_enrichment returned unexpected signal for base: {enrichment_signal}"
                             )
                             return (
-                                "NEEDS_STRATEGIC_REVIEW",
+                                DirectiveType.STRATEGIC_REVIEW,
                                 "Internal planner error: Unexpected base enrichment signal.",
                             )
                     else:
@@ -810,15 +885,52 @@ class Planner:
                             f"Planner: Tried to plan enrichment for base entity '{next_unprocessed_base_entity}', but received no directive. Might be blocked or error."
                         )
                         # Fall through to stagnation checks etc.
-                else:
-                    # --- All Base Entities Processed ---
+                else:  # Aligned with 'if next_unprocessed_base_entity:' on line 801
+                    # --- All Base Entities Processed in this Cycle ---
                     logger.info(
-                        "Planner: All known base entities have been processed in this enrichment cycle."
+                        f"Planner: All known base entities processed in cycle {self._enrichment_cycle_count + 1}."
                     )
+                    self._enrichment_cycle_count += 1  # Increment cycle count
 
-                    # 3. Stagnation & Confidence Checks (Only if all base entities processed)
+                    # --- Check Minimum Enrichment Cycles ---
+                    if (
+                        self._enrichment_cycle_count
+                        < self._task_definition.min_enrichment_cycles
+                    ):
+                        logger.info(
+                            f"Planner: Minimum enrichment cycles ({self._task_definition.min_enrichment_cycles}) not met. Starting cycle {self._enrichment_cycle_count + 1}."
+                        )
+                        # Reset processed set and plan enrichment for the first base entity again
+                        self._processed_base_entities_enrichment = set()
+                        if sorted_base_ids:  # Ensure there are base IDs to process
+                            first_base_entity = sorted_base_ids[0]
+                            logger.info(
+                                f"Planner: Restarting enrichment cycle with entity: '{first_base_entity}'"
+                            )
+                            enrichment_signal = self._plan_enrichment(
+                                priority_targets=[first_base_entity]
+                            )
+                            if isinstance(enrichment_signal, tuple):
+                                return (DirectiveType.ENRICHMENT, enrichment_signal)
+                            elif enrichment_signal == DirectiveType.CLARIFICATION:
+                                return DirectiveType.CLARIFICATION
+                            else:  # Error or completion during planning for the first entity
+                                logger.error(
+                                    "Planner: Failed to plan enrichment for the first entity when restarting cycle."
+                                )
+                                # Fall through to strategic review as a safety measure
+                        else:
+                            logger.error(
+                                "Planner: Cannot restart enrichment cycle as no base entities were found."
+                            )
+                            # Fall through to strategic review
+
+                    # --- Minimum Cycles Met: Proceed with Stagnation, Confidence, Completeness Checks ---
+                    logger.info(
+                        f"Planner: Minimum enrichment cycles ({self._task_definition.min_enrichment_cycles}) met or exceeded. Proceeding with checks."
+                    )
                     logger.debug(
-                        "Planner: Checking stagnation and confidence before strategic review."
+                        "Planner: Checking stagnation, confidence, and completeness before strategic review."
                     )
                     try:
                         # Check for stagnation using granular incomplete set
@@ -855,7 +967,7 @@ class Planner:
                             self._stagnation_counter = 0
                             self._last_incomplete_set = None
                             return (
-                                "NEEDS_STRATEGIC_REVIEW",
+                                DirectiveType.STRATEGIC_REVIEW,
                                 f"Stagnation detected after {self._stagnation_counter} cycles with no progress on incomplete entities.",
                             )
 
@@ -873,7 +985,7 @@ class Planner:
                             # Reset state for next cycle after review
                             self._processed_base_entities_enrichment = set()
                             return (
-                                "NEEDS_STRATEGIC_REVIEW",
+                                DirectiveType.STRATEGIC_REVIEW,
                                 f"Average KB confidence ({avg_confidence:.2f}) is below threshold ({self._confidence_threshold}).",
                             )
 
@@ -883,7 +995,7 @@ class Planner:
                             exc_info=True,
                         )
                         return (
-                            "NEEDS_STRATEGIC_REVIEW",
+                            DirectiveType.STRATEGIC_REVIEW,
                             f"KB error during planner checks: {kbe.message}",
                         )
                     except Exception as e:
@@ -892,48 +1004,117 @@ class Planner:
                             exc_info=True,
                         )
                         return (
-                            "NEEDS_STRATEGIC_REVIEW",
+                            DirectiveType.STRATEGIC_REVIEW,
                             f"Unexpected error during planner checks: {e}",
                         )
 
-                    # 4. Trigger Strategic Review (If all base entities processed & no other issues)
-                    logger.info(
-                        "Planner: Initial enrichment cycle complete for all known entities. No stagnation or low confidence detected. Signaling strategic review."
-                    )
-                    # Reset processed set before signaling review, so next cycle starts fresh
+                    # 4. Check Completeness Threshold (After Stagnation/Confidence checks pass)
+                    try:
+                        # Placeholder: Assume KB has a method to calculate this
+                        completeness = self._kb.calculate_completeness(
+                            self._task_definition.target_columns
+                        )
+                        logger.info(
+                            f"Planner: Calculated KB completeness: {completeness:.2f}"
+                        )
+                    except NotImplementedError:
+                        logger.warning(
+                            "Planner: KB `calculate_completeness` not implemented. Skipping completeness check."
+                        )
+                        completeness = 1.0  # Assume complete if method not available
+                    except Exception as e:
+                        logger.error(
+                            f"Planner: Error calculating completeness: {e}",
+                            exc_info=True,
+                        )
+                        completeness = 0.0  # Assume incomplete on error
+
+                    # 5. Trigger Strategic Review Based on Checks
+                    review_reason = ""
+                    if completeness < self._task_definition.completeness_threshold:
+                        review_reason = f"Completeness ({completeness:.2f}) is below threshold ({self._task_definition.completeness_threshold})."
+                        if self._task_definition.allow_new_discovery:
+                            review_reason += (
+                                " Consider further enrichment or discovery."
+                            )
+                        else:
+                            review_reason += " Consider further enrichment."
+                        logger.warning(
+                            f"Planner: {review_reason} Signaling strategic review."
+                        )
+
+                    else:
+                        # All checks passed (min cycles, stagnation, confidence, completeness)
+                        avg_confidence_str = (
+                            f"{avg_confidence:.2f}"
+                            if avg_confidence is not None
+                            else "N/A"
+                        )  # Handle None avg_confidence
+                        review_reason = f"Minimum enrichment cycles ({self._task_definition.min_enrichment_cycles}) complete, checks passed (Stagnation={self._stagnation_counter}, AvgConfidence={avg_confidence_str}, Completeness={completeness:.2f})."
+                        logger.info(
+                            f"Planner: {review_reason} Signaling strategic review."
+                        )
+
+                    # Reset state variables before returning review signal
                     self._processed_base_entities_enrichment = set()
-                    return (
-                        "NEEDS_STRATEGIC_REVIEW",
-                        "Initial enrichment phase complete. Review results and provide guidance for the next phase (e.g., 'continue discovery', 'refine targets', 'complete research').",
+                    self._stagnation_counter = 0
+                    self._last_incomplete_set = None
+                    self._enrichment_cycle_count = (
+                        0  # Reset cycle count after review is triggered
                     )
 
+                    # Construct the dictionary payload using the singular 'review_reason'
+                    review_payload = {
+                        "reason": review_reason,  # Use the singular variable defined earlier
+                        # Add relevant context
+                        "kb_summary": self._kb.get_knowledge_summary(),
+                        "blocked_candidates": blocked_candidates,  # Assumes blocked_candidates is available
+                    }
+                    # Add the debug log
+                    logger.debug(
+                        f"Planner: Preparing STRATEGIC_REVIEW signal. Payload type: {type(review_payload)}, Payload content: {review_payload}"
+                    )
+                    # Return the correct signal format
+                    return (DirectiveType.STRATEGIC_REVIEW, review_payload)
+
+            # Corrected indentation for the except block
             except KBInteractionError as kbe:
                 logger.error(
                     f"Planner: KB error while getting base entity IDs: {kbe}",
                     exc_info=True,
                 )
                 return (
-                    "NEEDS_STRATEGIC_REVIEW",
+                    DirectiveType.STRATEGIC_REVIEW,
                     f"KB error during planner checks: {kbe.message}",
                 )
+            # Corrected indentation for the except block
             except Exception as e:
                 logger.error(
                     f"Planner: Unexpected error while getting base entity IDs: {e}",
                     exc_info=True,
                 )
                 return (
-                    "NEEDS_STRATEGIC_REVIEW",
+                    DirectiveType.STRATEGIC_REVIEW,
                     f"Unexpected error during planner checks: {e}",
                 )
 
-        # Fallback if somehow no directive was issued (should ideally not be reached with new logic)
+        # Fallback if somehow no directive was issued (Corrected indentation)
         logger.error(
             "Planner: Reached end of planning logic without issuing a directive or review signal. This indicates a potential logic error."
         )
-        return (
-            "NEEDS_STRATEGIC_REVIEW",
-            "Planner reached unexpected state. Needs review.",
+        # Corrected fallback return statement
+        # Construct fallback payload
+        fallback_payload = {
+            "reason": "Planner reached unexpected state. Needs review.",
+            "enrichment_cycle_count": self._enrichment_cycle_count,
+            "completeness_ratio": None,
+            "planner_suggestion": "Suggest REVIEW",
+        }
+        final_signal = (DirectiveType.STRATEGIC_REVIEW, fallback_payload)  # Use Enum
+        logger.debug(
+            f"determine_next_directive: Returning fallback signal: {final_signal}"
         )
+        return final_signal
 
     # Removed check_completion method as completion is now determined within determine_next_directive
     # based on planner outcome or client assessment.

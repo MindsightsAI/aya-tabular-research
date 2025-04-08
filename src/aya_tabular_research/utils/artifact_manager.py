@@ -20,11 +20,6 @@ def find_project_root(
 PROJECT_ROOT = find_project_root()
 ARTIFACTS_BASE_DIR = PROJECT_ROOT / "artifacts"
 
-print(f"DEBUG [artifact_manager]: __file__ = {__file__}")
-print(f"DEBUG [artifact_manager]: PROJECT_ROOT = {PROJECT_ROOT}")
-print(f"DEBUG [artifact_manager]: ARTIFACTS_BASE_DIR = {ARTIFACTS_BASE_DIR}")
-
-
 def get_artifact_path(*subdirs: str, filename: str = None) -> Path:
     """
     Constructs a path within the artifacts directory. Creates the directory if it doesn't exist.

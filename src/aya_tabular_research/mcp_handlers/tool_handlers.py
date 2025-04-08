@@ -12,12 +12,12 @@ from pydantic import ValidationError as PydanticValidationError
 
 # Local application imports
 # Import the central instances registry
-from ..core import instances
+from ..core import exceptions, instances
 
 # Import custom exceptions and error models
 from ..core.exceptions import AYAServerError
 from ..core.models import research_models
-from ..core.models.enums import DirectiveType, OverallStatus
+from ..core.models.enums import DirectiveType, OverallStatus, StrategicDecisionOption
 from ..core.models.error_models import OperationalErrorData
 from ..core.models.research_models import (
     DefineTaskArgs,
@@ -92,16 +92,16 @@ async def handle_define_task(args: DefineTaskArgs) -> DefineTaskResult:  # Remov
         task_def = args.task_definition
         planner_signal_tuple = planner.determine_next_directive()
 
-        if planner_signal_tuple == "CLARIFICATION_NEEDED":
+        if planner_signal_tuple == DirectiveType.CLARIFICATION:
             clarification_reason = "Planner requires immediate clarification based on task definition/seeds."
             await state_manager.request_clarification(clarification_reason)
             next_directive = InstructionObjectV3(
                 research_goal_context=task_def.task_description,
                 inquiry_focus=f"User Clarification Needed: {clarification_reason}",
                 focus_areas=[
-                    "Please provide guidance via 'research/submit_user_clarification'."
+                    "Please provide guidance via 'research_submit_user_clarification'."
                 ],
-                allowed_tools=["research/submit_user_clarification"],
+                allowed_tools=["research_submit_user_clarification"],
                 directive_type=DirectiveType.CLARIFICATION,
             )
             result_status = (
@@ -113,8 +113,8 @@ async def handle_define_task(args: DefineTaskArgs) -> DefineTaskResult:  # Remov
                 research_goal_context=task_def.task_description,
                 inquiry_focus="Research Complete, you should export or preview results.",
                 allowed_tools=[
-                    "research/preview_results",
-                    "research/export_results",
+                    "research_preview_results",
+                    "research_export_results",
                 ],
                 directive_type=DirectiveType.COMPLETION,
             )
@@ -196,6 +196,7 @@ async def handle_submit_inquiry_report(
             raise AYAServerError(
                 "Server configuration error: Core components missing.", data=op_data
             )
+        logger.info(f"Entering {operation}. Current state: {state_manager.status}. Incoming instruction_id: {args.inquiry_report.instruction_id}")
 
         if state_manager.status != OverallStatus.CONDUCTING_INQUIRY:
             op_data = OperationalErrorData(
@@ -219,12 +220,14 @@ async def handle_submit_inquiry_report(
             raise AYAServerError(
                 "Inconsistent state: No active directive found.", data=op_data
             )
+        logger.info(f"State manager active instruction ID: {getattr(active_directive, 'instruction_id', 'N/A')}")
 
         report_outcome = await report_handler.process_report(
             args.inquiry_report, active_directive
         )
         resulting_status, strategic_decision, strategic_targets = report_outcome
 
+        logger.info(f"After process_report. Resulting status signal: {resulting_status}. Strategic decision: {strategic_decision}")
         if resulting_status is None:
             op_data = OperationalErrorData(
                 component="ReportHandler",
@@ -258,33 +261,46 @@ async def handle_submit_inquiry_report(
             # Client assessment dictionary removed as planner no longer uses it.
             # Strategic decisions are now handled directly below or passed to planner implicitly via state/KB.
             # Check if the client explicitly requested clarification
-            if strategic_decision == "CLARIFY_USER":
+            if strategic_decision == StrategicDecisionOption.CLARIFY_USER:
                 # Directly transition state without calling planner
                 await state_manager.request_clarification(
                     "Client requested user clarification via strategic decision."
                 )
+                logger.info(f"State after request_clarification (strategic): {state_manager.status}")
                 result_status = (
                     research_models.RequestDirectiveResultStatus.CLARIFICATION_NEEDED
                 )
                 # No directive payload needed when clarification is requested
                 next_directive_payload = None
+            # --- ADDED: Handle FINALIZE decision ---
+            elif strategic_decision == StrategicDecisionOption.FINALIZE:
+                logger.info("Client requested FINALIZE. Completing research.")
+                await state_manager.complete_research()
+                logger.info(f"State after complete_research (strategic finalize): {state_manager.status}")
+                result_status = (
+                    research_models.RequestDirectiveResultStatus.RESEARCH_COMPLETE
+                )
+                next_directive_payload = None  # No further directive needed
+            # --- END ADDED ---
             else:
-                # For other decisions (ENRICH, DISCOVER, FINALIZE, etc.), call the planner
+                # For other decisions (ENRICH, DISCOVER, ENRICH_SPECIFIC), call the planner
                 planner_signal_tuple = (
                     planner.determine_next_directive()
                 )  # Removed client_assessment argument
                 # Process the planner's signal based on the client's decision
-                if planner_signal_tuple == "CLARIFICATION_NEEDED":
+                if planner_signal_tuple == DirectiveType.CLARIFICATION:
                     # Planner determined clarification is needed even after client decision
                     await state_manager.request_clarification(
                         "Planner requires clarification based on strategic decision outcome."
                     )
+                    logger.info(f"State after request_clarification (planner post-strategic): {state_manager.status}")
                     result_status = (
                         research_models.RequestDirectiveResultStatus.CLARIFICATION_NEEDED
                     )
                 elif planner_signal_tuple is None:
                     # Planner determined completion
                     await state_manager.complete_research()
+                    logger.info(f"State after complete_research (planner post-strategic): {state_manager.status}")
                     result_status = (
                         research_models.RequestDirectiveResultStatus.RESEARCH_COMPLETE
                     )
@@ -293,8 +309,8 @@ async def handle_submit_inquiry_report(
                         research_goal_context=task_def.task_description,
                         inquiry_focus="Research Complete. Please export or preview the results.",
                         allowed_tools=[
-                            "research/preview_results",
-                            "research/export_results",
+                            "research_preview_results",
+                            "research_export_results",
                         ],
                         directive_type=DirectiveType.COMPLETION,
                     )
@@ -312,14 +328,15 @@ async def handle_submit_inquiry_report(
             planner_signal_tuple = (
                 planner.determine_next_directive()
             )  # Removed client_assessment argument
-            if planner_signal_tuple == "CLARIFICATION_NEEDED":
+            if planner_signal_tuple == DirectiveType.CLARIFICATION:
                 # Trigger strategic review if clarification needed after standard report
                 planner_signal = (
-                    "NEEDS_STRATEGIC_REVIEW",
+                    DirectiveType.STRATEGIC_REVIEW,
                     "critical_obstacles",
                 )  # Example reason
             elif planner_signal_tuple is None:
                 await state_manager.complete_research()
+                logger.info(f"State after complete_research (planner standard): {state_manager.status}")
                 result_status = (
                     research_models.RequestDirectiveResultStatus.RESEARCH_COMPLETE
                 )
@@ -327,8 +344,8 @@ async def handle_submit_inquiry_report(
                     research_goal_context=task_def.task_description,
                     inquiry_focus="Research Complete. Please export or preview the results.",
                     allowed_tools=[
-                        "research/preview_results",
-                        "research/export_results",
+                        "research_preview_results",
+                        "research_export_results",
                     ],
                     directive_type=DirectiveType.COMPLETION,  # Placeholder type
                 )
@@ -365,16 +382,27 @@ async def handle_submit_inquiry_report(
 
         # Build directive only if planner_signal is set
         if planner_signal:
-            next_directive_payload = directive_builder.build_directive(
-                planner_signal, task_def
-            )
-            await state_manager.directive_issued(next_directive_payload)
-            result_status = (
-                research_models.RequestDirectiveResultStatus.DIRECTIVE_ISSUED
-            )
-            logger.info(
-                f"Issuing next directive: {getattr(next_directive_payload, 'instruction_id', getattr(next_directive_payload, 'directive_id', 'N/A'))}"
-            )
+            try:
+                next_directive_payload = directive_builder.build_directive(
+                    planner_signal, task_def
+                )
+                # If directive built successfully, issue it
+                await state_manager.directive_issued(next_directive_payload)
+                logger.info(f"State after directive_issued: {state_manager.status}")
+                result_status = (
+                    research_models.RequestDirectiveResultStatus.DIRECTIVE_ISSUED
+                )
+                logger.info(
+                    f"Issuing next directive: {getattr(next_directive_payload, 'instruction_id', getattr(next_directive_payload, 'directive_id', 'N/A'))}"
+                )
+            except exceptions.PlanningError as e:
+                # Log state after planning error
+                current_status = instances.state_manager.status
+                logger.error(
+                    f"PlanningError caught in handle_submit_inquiry_report. Current state: {current_status.value}. Error: {e}"
+                )
+                # Re-raise the exception after logging, ensuring it's handled upstream
+                raise handle_aya_exception(e, operation) from e
 
         # Determine summary text based on the final result_status
         summary_text = "Status Update"
@@ -517,8 +545,8 @@ async def handle_submit_user_clarification(
                 research_goal_context=task_def.task_description,
                 inquiry_focus="Research Complete (finalized via clarification). Please export or preview the results.",
                 allowed_tools=[
-                    "research/preview_results",
-                    "research/export_results",
+                    "research_preview_results",
+                    "research_export_results",
                 ],
                 directive_type=DirectiveType.COMPLETION,
             )
@@ -526,7 +554,7 @@ async def handle_submit_user_clarification(
             logger.debug("Planning next directive after clarification.")
             planner_signal_tuple = planner.determine_next_directive()
 
-            if planner_signal_tuple == "CLARIFICATION_NEEDED":
+            if planner_signal_tuple == DirectiveType.CLARIFICATION:
                 # This shouldn't ideally happen right after clarification, but handle it
                 clarification_reason = (
                     "Planner still requires clarification after user input."
@@ -536,9 +564,9 @@ async def handle_submit_user_clarification(
                     research_goal_context=task_def.task_description,
                     inquiry_focus=f"User Clarification Still Needed: {clarification_reason}",
                     focus_areas=[
-                        "Please provide further guidance via 'research/submit_user_clarification'."
+                        "Please provide further guidance via 'research_submit_user_clarification'."
                     ],
-                    allowed_tools=["research/submit_user_clarification"],
+                    allowed_tools=["research_submit_user_clarification"],
                     directive_type=DirectiveType.ENRICHMENT,  # Placeholder
                 )
                 result_status = (
@@ -554,8 +582,8 @@ async def handle_submit_user_clarification(
                     research_goal_context=task_def.task_description,
                     inquiry_focus="Research Complete (decided after clarification). Please export or preview the results.",
                     allowed_tools=[
-                        "research/preview_results",
-                        "research/export_results",
+                        "research_preview_results",
+                        "research_export_results",
                     ],
                     directive_type=DirectiveType.COMPLETION,
                 )

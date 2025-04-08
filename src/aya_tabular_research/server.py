@@ -143,22 +143,22 @@ async def list_server_tools() -> list[types.Tool]:
     """Lists all tools provided by the server with their detailed input schemas."""
     tool_list = [
         types.Tool(
-            name="research/define_task",
+            name="research_define_task",
             description="Starts a new research task. Provide the overall goal, desired data structure, and optional seeds via the `task_definition` argument (see schema). Returns a confirmation (`message`, `summary`) and the *first directive* object (`InstructionObjectV3` or `StrategicReviewDirective` with embedded context) in the `instruction_payload` field to guide your next action. If `instruction_payload` is null, check the `status` field (`clarification_needed` or `research_complete`).",
             inputSchema=DefineTaskArgs.model_json_schema(),
         ),
         types.Tool(
-            name="research/submit_inquiry_report",
+            name="research_submit_inquiry_report",
             description="Submit findings after executing a standard directive (`InstructionObjectV3`) OR submit a strategic decision after analyzing a `StrategicReviewDirective`. Correlate using the `instruction_id` from the directive you processed. Provide findings/decision in the `inquiry_report` argument (see schema). Returns a confirmation (`message`, `summary`) and the *next directive* object (`InstructionObjectV3` or `StrategicReviewDirective` with embedded context) in the `instruction_payload` field. If `instruction_payload` is null, check the `status` field (`clarification_needed` or `research_complete`).",
             inputSchema=SubmitInquiryReportArgs.model_json_schema(),
         ),
         types.Tool(
-            name="research/submit_user_clarification",
+            name="research_submit_user_clarification",
             description="Provide input/guidance from the human user when the server previously requested clarification. Submit the user's input via the `clarification` argument (see schema). Returns a confirmation (`message`, `summary`), the server's updated status (`new_status`), available tools (`available_tools`), and the *next directive* object (`InstructionObjectV3` or `StrategicReviewDirective` with embedded context) in the `instruction_payload` field. If `instruction_payload` is null, check the `status` field (`clarification_needed` or `research_complete`).",
             inputSchema=SubmitUserClarificationArgs.model_json_schema(),
         ),
         types.Tool(
-            name="research/preview_results",
+            name="research_preview_results",
             description="Requests a preview (e.g., first N rows) of the structured data accumulated in the server's knowledge base. Typically used when research is complete. Optionally specify row limit via `limit` argument (see schema). Returns a formatted string (e.g., markdown table) representing the data preview.",
             inputSchema={
                 "type": "object",
@@ -173,7 +173,7 @@ async def list_server_tools() -> list[types.Tool]:
             },  # Updated schema for optional limit
         ),
         types.Tool(
-            name="research/export_results",
+            name="research_export_results",
             description="Requests a full export of the structured data accumulated in the server's knowledge base, saved to a file on the server. Typically used when research is complete. Specify the desired output format ('csv', 'json', 'parquet') via the `format` argument (see schema). Returns an `ExportResult` object containing the server-side `file_path` of the exported data.",
             inputSchema=ExportResultsArgs.model_json_schema(),
         ),
@@ -190,17 +190,17 @@ async def handle_tool_call(
     logger.info(f"Received tool call: {name} with args: {arguments}")
 
     tool_map = {
-        "research/define_task": (tool_handlers.handle_define_task, DefineTaskArgs),
-        "research/submit_inquiry_report": (
+        "research_define_task": (tool_handlers.handle_define_task, DefineTaskArgs),
+        "research_submit_inquiry_report": (
             tool_handlers.handle_submit_inquiry_report,
             SubmitInquiryReportArgs,
         ),
-        "research/submit_user_clarification": (
+        "research_submit_user_clarification": (
             tool_handlers.handle_submit_user_clarification,
             SubmitUserClarificationArgs,
         ),
-        "research/preview_results": (tool_handlers.handle_preview_results, None),
-        "research/export_results": (
+        "research_preview_results": (tool_handlers.handle_preview_results, None),
+        "research_export_results": (
             tool_handlers.handle_export_results,
             ExportResultsArgs,
         ),
@@ -278,7 +278,8 @@ async def handle_read_resource(
 ) -> Iterable[ReadResourceContents]:
     """Handles incoming resource read requests and dispatches to the correct handler."""
     uri_str = str(uri)
-    logger.info(f"Received resource read request for URI: {uri_str}")
+    # Explicitly log the URI being checked
+    logger.info(f"Received resource read request for URI: {uri_str}. Checking against known resources...")
 
     resource_map = {
         "research://research/status": resource_handlers.get_server_status,
@@ -328,7 +329,8 @@ async def handle_get_prompt(
     name: str, arguments: dict | None  # Removed ctx: RequestContext
 ) -> types.GetPromptResult:
     """Handles incoming get prompt requests and dispatches."""
-    logger.info(f"Received get prompt request for: {name}")
+    # Explicitly log the prompt name being checked
+    logger.info(f"Received get prompt request for: {name}. Checking against known prompts...")
 
     prompt_map = {
         "research/overview": prompt_handlers.handle_overview,

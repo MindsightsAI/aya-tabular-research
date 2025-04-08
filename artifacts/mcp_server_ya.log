@@ -136,7 +136,7 @@
     "narrative_summary_required": true
   },
   "allowed_tools": [
-    "research/submit_inquiry_report"
+    "research_submit_inquiry_report"
   ],
   "directive_type": "ENRICHMENT",
   "target_entity_id": "Russia",
@@ -174,7 +174,7 @@
     "narrative_summary_required": true
   },
   "allowed_tools": [
-    "research/submit_inquiry_report"
+    "research_submit_inquiry_report"
   ],
   "directive_type": "ENRICHMENT",
   "target_entity_id": "Russia",
@@ -282,7 +282,7 @@
     "narrative_summary_required": true
   },
   "allowed_tools": [
-    "research/submit_inquiry_report"
+    "research_submit_inquiry_report"
   ],
   "directive_type": "ENRICHMENT",
   "target_entity_id": "Belarus",
@@ -320,7 +320,7 @@
     "narrative_summary_required": true
   },
   "allowed_tools": [
-    "research/submit_inquiry_report"
+    "research_submit_inquiry_report"
   ],
   "directive_type": "ENRICHMENT",
   "target_entity_id": "Belarus",
@@ -427,7 +427,7 @@
     "narrative_summary_required": true
   },
   "allowed_tools": [
-    "research/submit_inquiry_report"
+    "research_submit_inquiry_report"
   ],
   "directive_type": "ENRICHMENT",
   "target_entity_id": "Kazakhstan",
@@ -465,7 +465,7 @@
     "narrative_summary_required": true
   },
   "allowed_tools": [
-    "research/submit_inquiry_report"
+    "research_submit_inquiry_report"
   ],
   "directive_type": "ENRICHMENT",
   "target_entity_id": "Kazakhstan",
@@ -571,7 +571,7 @@
     "narrative_summary_required": true
   },
   "allowed_tools": [
-    "research/submit_inquiry_report"
+    "research_submit_inquiry_report"
   ],
   "directive_type": "ENRICHMENT",
   "target_entity_id": "Turkey",
@@ -609,7 +609,7 @@
     "narrative_summary_required": true
   },
   "allowed_tools": [
-    "research/submit_inquiry_report"
+    "research_submit_inquiry_report"
   ],
   "directive_type": "ENRICHMENT",
   "target_entity_id": "Turkey",
@@ -714,7 +714,7 @@
     "narrative_summary_required": true
   },
   "allowed_tools": [
-    "research/submit_inquiry_report"
+    "research_submit_inquiry_report"
   ],
   "directive_type": "ENRICHMENT",
   "target_entity_id": "Israel",
@@ -752,7 +752,7 @@
     "narrative_summary_required": true
   },
   "allowed_tools": [
-    "research/submit_inquiry_report"
+    "research_submit_inquiry_report"
   ],
   "directive_type": "ENRICHMENT",
   "target_entity_id": "Israel",

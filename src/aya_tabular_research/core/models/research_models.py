@@ -41,7 +41,22 @@ class TaskDefinition(BaseModel):
         None,
         description="Optional. Columns defining unique data rows if finer granularity than 'identifier_column' is needed (e.g., ['company_id', 'country']). Must be a subset of 'columns' and include 'identifier_column'. Defaults to ['identifier_column'] if null.",
     )
-    # Add other fields like query_guidance, context_columns later if needed
+    # --- NEW Fields for Enhanced Planning Control ---
+    min_enrichment_cycles: int = Field(
+        default=1,
+        ge=1,
+        description="Optional. Minimum number of enrichment cycles to attempt for each base entity before triggering a default strategic review. Defaults to 1.",
+    )
+    completeness_threshold: float = Field(
+        default=0.9,
+        ge=0.0,
+        le=1.0,
+        description="Optional. Target ratio (0.0-1.0) of non-null values in target_columns across all granular rows. Used by planner in review triggers. Defaults to 0.9.",
+    )
+    allow_new_discovery: bool = Field(
+        default=True,
+        description="Optional. If True, allows the planner to suggest or trigger DISCOVERY during strategic reviews if completeness is low or stagnation occurs. Defaults to True.",
+    )
 
     @field_validator("columns")
     @classmethod
@@ -109,7 +124,7 @@ class TaskDefinition(BaseModel):
 
 
 class DefineTaskArgs(BaseModel):
-    """Input arguments for the research/define_task MCP tool."""
+    """Input arguments for the research_define_task MCP tool."""
 
     task_definition: TaskDefinition = Field(
         ..., description="The detailed definition of the research task."
@@ -155,7 +170,7 @@ class InstructionObjectV3(BaseModel):
         description="Instructions on how the client should structure the InquiryReport.",
     )
     allowed_tools: List[str] = Field(
-        default=["research/submit_inquiry_report"],
+        default=["research_submit_inquiry_report"],
         description="MCP tools the client is allowed to use while executing this instruction.",
     )
     directive_type: DirectiveType = Field(  # Use Enum for type hint
@@ -180,7 +195,7 @@ class InstructionObjectV3(BaseModel):
         return cls(
             research_goal_context="N/A",
             inquiry_focus="Research Complete",
-            allowed_tools=["research/preview_results", "research/export_results"],
+            allowed_tools=["research_preview_results", "research_export_results"],
         )
 
     @classmethod
@@ -217,6 +232,22 @@ class StrategicReviewContext(BaseModel):
         None,
         description="List of entity IDs currently identified as incomplete by the planner.",
     )
+    # --- NEW Fields for Enhanced Context ---
+    enrichment_cycle_count: Optional[int] = Field(
+        None,
+        description="The number of full enrichment cycles completed by the planner.",
+    )
+    completeness_ratio: Optional[float] = Field(
+        None,
+        ge=0.0,
+        le=1.0,
+        description="Optional. The calculated completeness ratio (0.0-1.0) of target columns at the time of review.",
+    )
+    planner_suggestion: Optional[str] = Field(
+        None,
+        description="Optional. The planner's suggested next step (e.g., 'Suggest ENRICH', 'Suggest DISCOVER').",
+    )
+    # --- End NEW Fields ---
     # Add other context fields as needed
 
 
@@ -237,7 +268,7 @@ class StrategicReviewDirective(BaseModel):
         default={"required_report_field": "strategic_decision"},
         description="Specifies that the client MUST provide the 'strategic_decision' field in the InquiryReport.",
     )
-    allowed_tools: List[str] = Field(default=["research/submit_inquiry_report"])
+    allowed_tools: List[str] = Field(default=["research_submit_inquiry_report"])
     # --- NEW Field for Embedded Context ---
     strategic_context: Optional["StrategicReviewContext"] = (
         Field(  # Use forward reference string
@@ -349,7 +380,7 @@ class InquiryReport(BaseModel):
 
 
 class SubmitInquiryReportArgs(BaseModel):
-    """Input arguments for the research/submit_inquiry_report MCP tool."""
+    """Input arguments for the research_submit_inquiry_report MCP tool."""
 
     inquiry_report: InquiryReport = Field(
         ...,
@@ -359,7 +390,7 @@ class SubmitInquiryReportArgs(BaseModel):
 
 # --- NEW MODEL for Phase 3 ---
 class SubmitUserClarificationArgs(BaseModel):
-    """Input arguments for the research/submit_user_clarification MCP tool, used to provide user input when requested by the server."""
+    """Input arguments for the research_submit_user_clarification MCP tool, used to provide user input when requested by the server."""
 
     # Simple text clarification for now, could be more structured later
     clarification: Optional[str] = Field(
@@ -419,7 +450,7 @@ class ServerStatusPayload(BaseModel):
 
 
 class DefineTaskResult(BaseModel):
-    """Result for the research/define_task tool, including the first directive."""
+    """Result for the research_define_task tool, including the first directive."""
 
     message: str = Field(..., description="Confirmation message for task definition.")
     # Fields from RequestDirectiveResult representing the *first* directive/status
@@ -443,7 +474,7 @@ class DefineTaskResult(BaseModel):
 
 
 class SubmitReportAndGetDirectiveResult(BaseModel):
-    """Combined result for research/submit_inquiry_report, including the next directive."""
+    """Combined result for research_submit_inquiry_report, including the next directive."""
 
     message: str = Field(..., description="Confirmation message for report submission.")
     # Fields from RequestDirectiveResult representing the *next* directive/status
@@ -468,7 +499,7 @@ class SubmitReportAndGetDirectiveResult(BaseModel):
 
 
 class SubmitClarificationResult(BaseModel):
-    """Result for research/submit_user_clarification, including the next directive."""
+    """Result for research_submit_user_clarification, including the next directive."""
 
     message: str = Field(
         ..., description="Confirmation message for clarification submission."
@@ -509,7 +540,7 @@ class ExportFormat(str, Enum):
 
 
 class ExportResultsArgs(BaseModel):
-    """Input arguments for the research/export_results MCP tool."""
+    """Input arguments for the research_export_results MCP tool."""
 
     format: ExportFormat = Field(
         default=ExportFormat.CSV,
@@ -518,7 +549,7 @@ class ExportResultsArgs(BaseModel):
 
 
 class ExportResult(BaseModel):
-    """Result payload for the research/export_results MCP tool."""
+    """Result payload for the research_export_results MCP tool."""
 
     file_path: str = Field(
         ..., description="The server-side path to the exported file."

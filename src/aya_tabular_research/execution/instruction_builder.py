@@ -1,7 +1,7 @@
 import logging
 
 # Consolidate typing imports and add Union
-from typing import Union
+from typing import Any, Dict, Union
 
 # Import custom exceptions and error models
 from ..core.exceptions import KBInteractionError, PlanningError
@@ -70,6 +70,9 @@ class DirectiveBuilder:
 
         signal_type = planner_signal[0]
         signal_payload = planner_signal[1]
+        logger.debug(
+            f"build_directive: Received planner signal type: {signal_type}, payload: {signal_payload}"
+        )
 
         try:  # Wrap the entire building process to catch KB errors
             if signal_type == DirectiveType.ENRICHMENT:  # Use Enum
@@ -129,7 +132,7 @@ class DirectiveBuilder:
                     inquiry_focus=inquiry_focus,
                     focus_areas=focus_areas,
                     reporting_guidelines=reporting_guidelines,
-                    allowed_tools=["research/submit_inquiry_report"],
+                    allowed_tools=["research_submit_inquiry_report"],
                     target_entity_id=target_entity_id,
                     directive_type=DirectiveType.ENRICHMENT,  # Use Enum
                     directive_context=context_to_send,  # Embed full profile or summary context
@@ -158,7 +161,7 @@ class DirectiveBuilder:
                     inquiry_focus=inquiry_focus,
                     focus_areas=focus_areas,
                     reporting_guidelines=reporting_guidelines,
-                    allowed_tools=["research/submit_inquiry_report"],
+                    allowed_tools=["research_submit_inquiry_report"],
                     target_entity_id=None,
                     directive_type=DirectiveType.DISCOVERY,  # Use Enum
                     # No directive_context needed for discovery
@@ -169,9 +172,15 @@ class DirectiveBuilder:
 
             elif signal_type == DirectiveType.STRATEGIC_REVIEW:  # Use Enum
                 # --- Build Strategic Review Directive ---
-                review_reason: str = signal_payload
+                # Expect payload to be a dictionary now
+                review_payload: Dict[str, Any] = signal_payload
+                review_reason = review_payload.get("reason", "Unknown reason")
+                enrichment_cycle_count = review_payload.get("enrichment_cycle_count")
+                completeness_ratio = review_payload.get("completeness_ratio")
+                planner_suggestion = review_payload.get("planner_suggestion")
+
                 logger.debug(
-                    f"Building STRATEGIC_REVIEW directive. Reason: {review_reason}"
+                    f"Building STRATEGIC_REVIEW directive. Reason: {review_reason}, Cycle: {enrichment_cycle_count}, Completeness: {completeness_ratio}, Suggestion: {planner_suggestion}"
                 )
 
                 # Gather context - these might raise KBInteractionError
@@ -193,7 +202,11 @@ class DirectiveBuilder:
                     research_goal=task_definition.task_description,
                     kb_summary=kb_summary,
                     obstacle_summary=obstacle_summary,
-                    incomplete_entities=incomplete_entities,  # Add incomplete entities list
+                    incomplete_entities=incomplete_entities,
+                    # Add new context fields
+                    enrichment_cycle_count=enrichment_cycle_count,
+                    completeness_ratio=completeness_ratio,
+                    planner_suggestion=planner_suggestion,
                 )
 
                 # Dynamically generate the options string from the Enum
@@ -221,7 +234,10 @@ class DirectiveBuilder:
             else:
                 # Should not happen if PlannerSignal is handled correctly
                 msg = f"Received unexpected planner signal type: {signal_type}. Cannot build directive."
-                logger.error(msg)
+                # Log the unexpected signal details clearly before raising
+                logger.error(
+                    f"build_directive: {msg} Signal Type: {signal_type}, Payload: {signal_payload}"
+                )
                 # Raise ValueError for unexpected input type
                 raise ValueError(msg)
 

@@ -105,17 +105,17 @@ class StateManager:
     def get_tools_for_state(self, status: OverallStatus) -> List[str]:
         """Returns the list of tool names available for a given status."""
         mapping = {
-            OverallStatus.AWAITING_TASK_DEFINITION: ["research/define_task"],
+            OverallStatus.AWAITING_TASK_DEFINITION: ["research_define_task"],
             OverallStatus.AWAITING_DIRECTIVE: [],  # Removed preview/export - only allowed in CLARIFICATION or COMPLETE
-            OverallStatus.CONDUCTING_INQUIRY: ["research/submit_inquiry_report"],
+            OverallStatus.CONDUCTING_INQUIRY: ["research_submit_inquiry_report"],
             OverallStatus.AWAITING_USER_CLARIFICATION: [
-                "research/submit_user_clarification",
-                "research/preview_results",
-                "research/export_results",
+                "research_submit_user_clarification",
+                "research_preview_results",
+                "research_export_results",
             ],
             OverallStatus.RESEARCH_COMPLETE: [
-                "research/preview_results",
-                "research/export_results",
+                "research_preview_results",
+                "research_export_results",
             ],
             OverallStatus.FATAL_ERROR: [],
         }
