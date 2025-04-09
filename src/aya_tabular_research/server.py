@@ -188,16 +188,19 @@ async def list_server_resources() -> list[types.Resource]:
     # Define resources based on the URIs handled in handle_read_resource
     resource_list = [
         types.Resource(
+            name="research/status",  # Added name derived from URI
             uri="research://research/status",
             description="Provides the current status of the research task and available tools.",
             # Add other metadata if needed, e.g., mime_type="application/json"
         ),
         types.Resource(
+            name="research/debug_state",  # Added name derived from URI
             uri="debug://research/debug_state",
             description="FOR DEBUGGING ONLY: Returns a JSON string representation of the current state.",
             # Add other metadata if needed
         ),
     ]
+    logger.debug(f"Creating resource list: {[r.model_dump() for r in resource_list]}")
     logger.info(f"Listing {len(resource_list)} resources.")
     return resource_list
 
@@ -432,3 +435,4 @@ if __name__ == "__main__":
         logger.info("Server stopped by user.")
     except Exception as main_err:
         logger.exception(f"Server failed to run: {main_err}")
+

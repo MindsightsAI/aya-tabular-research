@@ -1,59 +1,25 @@
-2025-04-08 18:18:49,165 [INFO] [aya_tabular_research.server] - Starting aya-guided-inquiry-server v0.4.3...
-2025-04-08 18:18:49,165 [INFO] [aya_tabular_research.storage.tabular_store] - TabularStore initialized.
-2025-04-08 18:18:49,165 [INFO] [aya_tabular_research.storage.knowledge_base] - TabularKnowledgeBase initialized.
-2025-04-08 18:18:49,165 [INFO] [aya_tabular_research.core.state_manager] - StateManager initialized. Initial status: AWAITING_TASK_DEFINITION (Stateless Mode)
-2025-04-08 18:18:49,165 [INFO] [aya_tabular_research.planning.planner] - Planner initialized with Obstacle Threshold: 0.5, Confidence Threshold: 0.6, Stagnation Cycles: 3
-2025-04-08 18:18:49,165 [INFO] [aya_tabular_research.execution.instruction_builder] - DirectiveBuilder initialized.
-2025-04-08 18:18:49,165 [INFO] [aya_tabular_research.execution.report_handler] - ReportHandler initialized (Synchronous Mode).
-2025-04-08 18:18:49,166 [INFO] [aya_tabular_research.server] - AppContext initialized with components.
-2025-04-08 18:18:49,166 [DEBUG] [aya_tabular_research.server] - Assigned component instances to core.instances.
-2025-04-08 18:18:49,166 [INFO] [aya_tabular_research.server] - Server started in stateless mode. Initial state: AWAITING_TASK_DEFINITION.
-2025-04-08 18:18:49,166 [DEBUG] [aya_tabular_research.server] - Lifespan context entered.
-2025-04-08 18:18:49,166 [DEBUG] [aya_tabular_research.server] - Initialization options created.
-2025-04-08 18:18:49,181 [INFO] [aya_tabular_research.server] - Listing 5 tools.
-2025-04-08 18:19:31,114 [INFO] [aya_tabular_research.server] - Received tool call: research_define_task with args: {'task_definition': {'task_description': "Identify Yandex's e-commerce business units, determine which countries they operate in, and research the Total Addressable Market (TAM) and Compound Annual Growth Rate (CAGR) for each business unit in each country.", 'columns': ['business_unit', 'country', 'tam_usd', 'cagr_percentage', 'source', 'notes'], 'identifier_column': 'business_unit', 'target_columns': ['country', 'tam_usd', 'cagr_percentage', 'source', 'notes'], 'granularity_columns': ['business_unit', 'country'], 'hints': "Focus on Yandex's current e-commerce operations. TAM should be expressed in USD where possible. CAGR should be expressed as a percentage."}}
-2025-04-08 18:19:31,115 [INFO] [aya_tabular_research.mcp_handlers.tool_handlers] - Tool 'handle_define_task' called.
-2025-04-08 18:19:31,115 [INFO] [aya_tabular_research.core.state_manager] - Task definition stored in StateManager.
-2025-04-08 18:19:31,115 [INFO] [aya_tabular_research.storage.knowledge_base] - Initializing Knowledge Base...
-2025-04-08 18:19:31,115 [INFO] [aya_tabular_research.storage.tabular_store] - Initializing TabularStore with user columns: ['business_unit', 'country', 'tam_usd', 'cagr_percentage', 'source', 'notes']
-2025-04-08 18:19:31,115 [INFO] [aya_tabular_research.storage.tabular_store] - Using granularity columns for index: ['business_unit', 'country']
-2025-04-08 18:19:31,140 [INFO] [aya_tabular_research.storage.tabular_store] - TabularStore initialized successfully with index ['business_unit', 'country'] and columns: ['_confidence_score', '_identified_obstacles', '_proposed_next_steps', '_summary_narrative', '_synthesized_findings', 'business_unit', 'cagr_percentage', 'country', 'notes', 'source', 'tam_usd']
-2025-04-08 18:19:31,140 [INFO] [aya_tabular_research.storage.knowledge_base] - Knowledge Base initialized successfully.
-2025-04-08 18:19:31,140 [INFO] [aya_tabular_research.core.state_manager] - Transitioning state from AWAITING_TASK_DEFINITION -> AWAITING_DIRECTIVE
-2025-04-08 18:19:31,140 [DEBUG] [aya_tabular_research.core.state_manager] - State transitioned to AWAITING_DIRECTIVE. Notification sending removed.
-2025-04-08 18:19:31,140 [INFO] [aya_tabular_research.planning.planner] - Task definition set in Planner.
-2025-04-08 18:19:31,140 [INFO] [aya_tabular_research.mcp_handlers.tool_handlers] - Task defined successfully. New status: AWAITING_DIRECTIVE
-2025-04-08 18:19:31,140 [DEBUG] [aya_tabular_research.mcp_handlers.tool_handlers] - Planning the first directive after task definition.
-2025-04-08 18:19:31,142 [DEBUG] [aya_tabular_research.planning.planner] - Planner: KB Summary: {'initialized': True, 'entity_count': 0, 'row_count': 0, 'columns': ['_confidence_score', '_identified_obstacles', '_proposed_next_steps', '_summary_narrative', '_synthesized_findings', 'business_unit', 'cagr_percentage', 'country', 'notes', 'source', 'tam_usd'], 'user_columns': ['business_unit', 'country', 'tam_usd', 'cagr_percentage', 'source', 'notes'], 'identifier_column': 'business_unit', 'index_columns': ['business_unit', 'country'], 'non_null_counts': {'_confidence_score': 0, '_identified_obstacles': 0, '_proposed_next_steps': 0, '_summary_narrative': 0, '_synthesized_findings': 0, 'business_unit': 0, 'cagr_percentage': 0, 'country': 0, 'notes': 0, 'source': 0, 'tam_usd': 0}, 'ready': True}
-2025-04-08 18:19:31,142 [INFO] [aya_tabular_research.planning.planner] - Planner: KB empty. Planning discovery.
-2025-04-08 18:19:31,142 [INFO] [aya_tabular_research.planning.planner] - Planner: Planning Discovery Directive.
-2025-04-08 18:19:31,142 [DEBUG] [aya_tabular_research.execution.instruction_builder] - build_directive: Received planner signal type: DISCOVERY, payload: ('Action: Discover initial entities relevant to the task.', ["Identify Yandex's e-commerce business units, determine which countries they operate in, and research the Total Addressable Market (TAM) and Compound Annual Growth Rate (CAGR) for each business unit in each country.", "Hints: Focus on Yandex's current e-commerce operations. TAM should be expressed in USD where possible. CAGR should be expressed as a percentage."], None)
-2025-04-08 18:19:31,142 [DEBUG] [aya_tabular_research.execution.instruction_builder] - Building DISCOVERY directive.
-2025-04-08 18:19:31,142 [DEBUG] [aya_tabular_research.execution.instruction_builder] - Set discovery reporting guidelines, required points: ['business_unit']
-2025-04-08 18:19:31,142 [INFO] [aya_tabular_research.execution.instruction_builder] - Built DISCOVERY instruction instr_097eae42 for focus: 'Action: Discover initial entities relevant to the task.'
-2025-04-08 18:19:31,142 [DEBUG] [aya_tabular_research.core.state_manager] - Active instruction set: instr_097eae42 at 2025-04-08T16:19:31.142459+00:00
-2025-04-08 18:19:31,142 [INFO] [aya_tabular_research.core.state_manager] - Transitioning state from AWAITING_DIRECTIVE -> CONDUCTING_INQUIRY
-2025-04-08 18:19:31,142 [DEBUG] [aya_tabular_research.core.state_manager] - State transitioned to CONDUCTING_INQUIRY. Notification sending removed.
-2025-04-08 18:19:31,142 [INFO] [aya_tabular_research.mcp_handlers.tool_handlers] - Issuing first instruction instr_097eae42
-2025-04-08 18:19:31,142 [WARNING] [aya_tabular_research.server] - Serializing complex result object for tool research_define_task to JSON.
-2025-04-08 18:20:59,597 [INFO] [aya_tabular_research.server] - Received tool call: research_define_task with args: {'task_definition': {'task_description': "Research and compile data on Yandex's e-commerce business units, identifying which countries each unit operates in, and determining the total addressable market (TAM) and compound annual growth rate (CAGR) for each country/unit combination.", 'columns': ['business_unit', 'country', 'tam_usd_millions', 'cagr_percent', 'source', 'notes'], 'identifier_column': 'business_unit', 'target_columns': ['country', 'tam_usd_millions', 'cagr_percent', 'source', 'notes'], 'granularity_columns': ['business_unit', 'country'], 'hints': "Focus on Yandex's key e-commerce initiatives including Yandex.Market, Yandex.Delivery, Yandex.Lavka, and other relevant e-commerce operations. For each business unit, identify countries of operation, especially in Russia, CIS countries, and any international expansion. When possible, find official market size data (TAM) and growth rates (CAGR). If exact figures are unavailable, include reasonable estimates based on comparable markets or industry reports with clear notation about estimation methods.", 'min_enrichment_cycles': 2, 'completeness_threshold': 0.8}}
-2025-04-08 18:20:59,597 [INFO] [aya_tabular_research.mcp_handlers.tool_handlers] - Tool 'handle_define_task' called.
-2025-04-08 18:20:59,597 [ERROR] [aya_tabular_research.mcp_handlers.error_handler] - AYA Server Error during handle_define_task: Cannot define task in current state: CONDUCTING_INQUIRY
-Traceback (most recent call last):
-  File "/home/maxbaluev/aya/src/aya_tabular_research/mcp_handlers/tool_handlers.py", line 75, in handle_define_task
-    raise AYAServerError(
-aya_tabular_research.core.exceptions.AYAServerError: Cannot define task in current state: CONDUCTING_INQUIRY
-2025-04-08 18:20:59,597 [ERROR] [aya_tabular_research.server] - Error executing tool research_define_task: Cannot define task in current state: CONDUCTING_INQUIRY
-Traceback (most recent call last):
-  File "/home/maxbaluev/aya/src/aya_tabular_research/mcp_handlers/tool_handlers.py", line 75, in handle_define_task
-    raise AYAServerError(
-aya_tabular_research.core.exceptions.AYAServerError: Cannot define task in current state: CONDUCTING_INQUIRY
-
-The above exception was the direct cause of the following exception:
-
-Traceback (most recent call last):
-  File "/home/maxbaluev/aya/src/aya_tabular_research/server.py", line 220, in handle_tool_call
-    result = await handler_func(parsed_args)  # Removed ctx
-  File "/home/maxbaluev/aya/src/aya_tabular_research/mcp_handlers/tool_handlers.py", line 163, in handle_define_task
-    raise handle_aya_exception(e, operation) from e
-mcp.shared.exceptions.McpError: Cannot define task in current state: CONDUCTING_INQUIRY
+2025-04-08 18:46:37,591 [INFO] [aya_tabular_research.server] - Starting aya-guided-inquiry-server v0.4.3...
+2025-04-08 18:46:37,591 [INFO] [aya_tabular_research.storage.tabular_store] - TabularStore initialized.
+2025-04-08 18:46:37,591 [INFO] [aya_tabular_research.storage.knowledge_base] - TabularKnowledgeBase initialized.
+2025-04-08 18:46:37,591 [INFO] [aya_tabular_research.core.state_manager] - StateManager initialized. Initial status: AWAITING_TASK_DEFINITION (Stateless Mode)
+2025-04-08 18:46:37,591 [INFO] [aya_tabular_research.planning.planner] - Planner initialized with Obstacle Threshold: 0.5, Confidence Threshold: 0.6, Stagnation Cycles: 3
+2025-04-08 18:46:37,591 [INFO] [aya_tabular_research.execution.instruction_builder] - DirectiveBuilder initialized.
+2025-04-08 18:46:37,591 [INFO] [aya_tabular_research.execution.report_handler] - ReportHandler initialized (Synchronous Mode).
+2025-04-08 18:46:37,591 [INFO] [aya_tabular_research.server] - AppContext initialized with components.
+2025-04-08 18:46:37,591 [DEBUG] [aya_tabular_research.server] - Assigned component instances to core.instances.
+2025-04-08 18:46:37,591 [INFO] [aya_tabular_research.server] - Server started in stateless mode. Initial state: AWAITING_TASK_DEFINITION.
+2025-04-08 18:46:37,591 [DEBUG] [aya_tabular_research.server] - Lifespan context entered.
+2025-04-08 18:46:37,591 [DEBUG] [aya_tabular_research.server] - Initialization options created.
+2025-04-08 18:46:37,599 [DEBUG] [aya_tabular_research.server] - Creating resource list: [{'uri': 'research://research/status', 'name': 'research/status', 'description': 'Provides the current status of the research task and available tools.', 'mimeType': None, 'size': None, 'annotations': None}, {'uri': 'debug://research/debug_state', 'name': 'research/debug_state', 'description': 'FOR DEBUGGING ONLY: Returns a JSON string representation of the current state.', 'mimeType': None, 'size': None, 'annotations': None}]
+2025-04-08 18:46:37,599 [INFO] [aya_tabular_research.server] - Listing 2 resources.
+2025-04-08 18:46:37,608 [INFO] [aya_tabular_research.server] - Listing 5 tools.
+2025-04-08 18:46:37,611 [INFO] [aya_tabular_research.server] - Listing 1 prompts.
+2025-04-08 18:46:42,601 [DEBUG] [aya_tabular_research.server] - Creating resource list: [{'uri': 'research://research/status', 'name': 'research/status', 'description': 'Provides the current status of the research task and available tools.', 'mimeType': None, 'size': None, 'annotations': None}, {'uri': 'debug://research/debug_state', 'name': 'research/debug_state', 'description': 'FOR DEBUGGING ONLY: Returns a JSON string representation of the current state.', 'mimeType': None, 'size': None, 'annotations': None}]
+2025-04-08 18:46:42,601 [INFO] [aya_tabular_research.server] - Listing 2 resources.
+2025-04-08 18:46:42,604 [INFO] [aya_tabular_research.server] - Listing 1 prompts.
+2025-04-08 18:46:45,010 [DEBUG] [aya_tabular_research.server] - Creating resource list: [{'uri': 'research://research/status', 'name': 'research/status', 'description': 'Provides the current status of the research task and available tools.', 'mimeType': None, 'size': None, 'annotations': None}, {'uri': 'debug://research/debug_state', 'name': 'research/debug_state', 'description': 'FOR DEBUGGING ONLY: Returns a JSON string representation of the current state.', 'mimeType': None, 'size': None, 'annotations': None}]
+2025-04-08 18:46:45,010 [INFO] [aya_tabular_research.server] - Listing 2 resources.
+2025-04-08 18:46:45,047 [INFO] [aya_tabular_research.server] - Listing 1 prompts.
+2025-04-08 18:46:50,024 [DEBUG] [aya_tabular_research.server] - Creating resource list: [{'uri': 'research://research/status', 'name': 'research/status', 'description': 'Provides the current status of the research task and available tools.', 'mimeType': None, 'size': None, 'annotations': None}, {'uri': 'debug://research/debug_state', 'name': 'research/debug_state', 'description': 'FOR DEBUGGING ONLY: Returns a JSON string representation of the current state.', 'mimeType': None, 'size': None, 'annotations': None}]
+2025-04-08 18:46:50,024 [INFO] [aya_tabular_research.server] - Listing 2 resources.
+2025-04-08 18:46:50,027 [INFO] [aya_tabular_research.server] - Listing 1 prompts.
